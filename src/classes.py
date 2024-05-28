@@ -1,13 +1,16 @@
 import sqlite3 as sql
-from datetime import date
+
+from datetime import datetime, date
 from pprint import pprint
+from typing import List
 
 class Estudio:
     id_estudio = 0
     nome = ""
 
-    def __init__(self, nome: str) -> None:
+    def __init__(self, nome: str, id: int = 0) -> None:
         self.nome = nome
+        self.id_estudio = id
 
     def set_id_estudio(self, id: int):
         self.id_estudio = id
@@ -17,7 +20,7 @@ class Estudio:
             if self.id_estudio == 0:
                 estudio = self.procurar_estudio(connection, self.nome)
                 if len(estudio) > 0:
-                    self.id_estudio = int(estudio[0][0])
+                    self.id_estudio = int(estudio[0].id_estudio)
                 else:
                     raise sql.Error(f"Estudio '{self.nome}' nao existe!")
             
@@ -42,13 +45,39 @@ class Estudio:
     
     @staticmethod
     def procurar_estudio(connection: sql.Connection, nome: str, id: int = 0):
+        estudios: List[Estudio] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM estudio WHERE id_estudio = ? OR nome = ?", (id, nome))
             rows = cursor.fetchall()
-            return rows
+
+            estudios = list(map(
+                lambda x: Estudio(x[1], x[0]),
+                rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+        finally:
+            cursor.close()
+            return estudios
+    
+    @staticmethod
+    def listar_todos_estudios(connection: sql.Connection):
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM estudio")
+            rows = cursor.fetchall()
+           
+            estudios = list(map(
+                lambda x: Estudio(x[1], x[0]),
+                rows
+            ))
+
+            return estudios
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
 
@@ -89,7 +118,7 @@ class Filme:
             if self.id_filme == 0:
                 filme = self.procurar_filme(connection, self.titulo)
                 if len(filme) > 0:
-                    self.id_filme = filme[0][0]
+                    self.id_filme = int(filme[0].id_filme)
                 else:
                     raise sql.Error(f"Filme '{self.titulo}' não existe!")
         
@@ -97,7 +126,7 @@ class Filme:
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
         
-    def interir_filme(self, connection: sql.Connection):
+    def inserir_filme(self, connection: sql.Connection):
         try:
             cursor = connection.cursor()
             filmes = self.procurar_filme(connection, self.titulo)
@@ -114,14 +143,38 @@ class Filme:
     
     @staticmethod
     def procurar_filme(connection: sql.Connection, nome: str, id: int = 0):
+        filmes: List[Filme] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM filme WHERE id_filme = ? OR titulo = ?", (id, nome))
             rows = cursor.fetchall()
-            
-            return rows
+
+            filmes = list(map(
+                lambda x: Filme(x[1], x[2], x[3], x[4], x[0]),
+                rows
+            ))
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+            return []
+        finally:
+            cursor.close()
+            return filmes
+
+    def listar_todos_filmes(connection: sql.Connection):
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM filme")
+            rows = cursor.fetchall()
+
+            filmes = list(map(
+                lambda x: Filme(x[1], x[2], x[3], x[4], x[0]),
+                rows
+            ))
+
+            return filmes
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
 
@@ -155,7 +208,7 @@ class Genero:
         if self.id_genero == 0:
             genero = self.procurar_genero(connection, self.nome)
             if len(genero) > 0:
-                self.id_genero = genero[0][0]
+                self.id_genero = genero[0].id_genero
             else:
                 print(f"Genero '{self.nome}' não existe!")
                 return None
@@ -178,15 +231,22 @@ class Genero:
 
     @staticmethod
     def procurar_genero(connection: sql.Connection, nome: str, id_genero: int = 0):
+        generos: List[Genero] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM genero WHERE id_genero = ? OR nome LIKE ?", (id_genero, nome))
             rows = cursor.fetchall()
-            return rows
+
+            generos = list(map(
+                lambda x: Genero(x[1], x[0]),
+                rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
         finally:
             cursor.close()
+            return generos
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
@@ -274,7 +334,7 @@ class Pessoa:
         try:
             pessoa = self.procurar_pessoa(connection, self.nome)
             if len(pessoa) > 0:
-                self.id_pessoa = pessoa[0][0]
+                self.id_pessoa = pessoa[0].id_pessoa
             else:
                 raise sql.Error(f"Pessoa '{self.nome}' nao existe!")
             
@@ -297,14 +357,40 @@ class Pessoa:
         finally:
             cursor.close()
 
-    def procurar_pessoa(self, connection: sql.Connection, nome: str, id_pessoa: int = 0):
+    @staticmethod
+    def procurar_pessoa(connection: sql.Connection, nome: str, id_pessoa: int = 0):
+        pessoa: List[Pessoa] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM Pessoa WHERE id_pessoa = ? OR nome = ?", (id_pessoa, nome))
             rows = cursor.fetchall()
-            return rows
+
+            pessoa = list(map(
+                lambda x: Pessoa(x[1], x[2], x[0]), rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+            return []
+        finally:
+            cursor.close()
+            return pessoa
+
+    @staticmethod
+    def listar_todas_pessoas(connection: sql.Connection):
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM Pessoa")
+            rows = cursor.fetchall()
+
+            pessoas = list(map(
+                lambda x: Pessoa(x[1], x[2], x[0]), rows
+            ))
+
+            return pessoas
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
 
@@ -340,7 +426,7 @@ class Funcao:
             if self.id_funcao == 0:
                 funcao = self.procurar_funcao(connection, self.nome)
                 if len(funcao) > 0:
-                    self.id_funcao = funcao[0][0]
+                    self.id_funcao = funcao[0].id_funcao
                 else:
                     raise sql.Error(f"Função '{self.nome}' nao existe")
 
@@ -363,15 +449,21 @@ class Funcao:
             cursor.close()
 
     def procurar_funcao(self, connection: sql.Connection, nome: str, id_funcao: int = 0):
+        jobs: List[Funcao] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM Funcao WHERE id_funcao = ? OR nome = ?", (id_funcao, nome))
             rows = cursor.fetchall()
-            return rows
+
+            jobs = list(map(
+                lambda x: Funcao(x[1], x[0]), rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
         finally:
             cursor.close()
+            return jobs
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
@@ -456,7 +548,7 @@ class Local:
             if self.id_local == 0:
                 local = self.procurar_local(connection, self.nome)
                 if len(local) > 0:
-                    self.id_local = local[0][0]
+                    self.id_local = local[0].id_local
                 else:
                     raise sql.Error(f"Local '{self.nome}' não existe")
                 
@@ -479,14 +571,39 @@ class Local:
         finally:
             cursor.close()
 
-    def procurar_local(self, connection: sql.Connection, nome: str, id_local: int = 0):
+    @staticmethod
+    def procurar_local(connection: sql.Connection, nome: str, id_local: int = 0):
+        locais: List[Local] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM Local WHERE id_local = ? OR nome = ?", (id_local, nome))
             rows = cursor.fetchall()
-            return rows
+
+            locais = list(map(
+                lambda x: Local(x[1], x[2], x[0]), rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+        finally:
+            cursor.close()
+            return locais
+
+    @staticmethod
+    def listar_todos_locais(connection: sql.Connection):
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM Local")
+            rows = cursor.fetchall()
+
+            locais = list(map(
+                lambda x: Local(x[1], x[2], x[0]), rows
+            ))
+
+            return locais
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta Local: {e}")
+            return []
         finally:
             cursor.close()
 
@@ -512,9 +629,9 @@ class Sessao:
     id_filme = 0
     id_local = 0
 
-    def __init__(self, data: date, comentario: str, id_filme: int, id_local: Local, id: int = 0) -> None:
+    def __init__(self, data: str, comentario: str, id_filme: int, id_local: Local, id: int = 0) -> None:
         self.id_sessao = id
-        self.data_visto = data
+        self.data_visto = self.str_date_to_datatime(data, '%Y/%m/%d')
         self.comentario = comentario
         self.id_filme = id_filme
         self.id_local = id_local
@@ -527,7 +644,7 @@ class Sessao:
             if self.id_sessao == 0:
                 sessao = self.procurar_sessao(connection, self.data_visto, self.id_filme, self.id_local)
                 if len(sessao) > 0:
-                    self.id_sessao = sessao[0][0]
+                    self.id_sessao = sessao[0].id_sessao
                 else:
                     raise sql.Error(f"Sessão '{self.data_visto}' não existe")
                 
@@ -551,16 +668,31 @@ class Sessao:
         finally:
             cursor.close()
 
-    def procurar_sessao(self, connection: sql.Connection, data_visto: date, id_filme: int, id_local: int, id_sessao: int = 0):
+    @staticmethod
+    def str_date_to_datatime(date: str, format: str = '%d/%m/%Y') -> datetime:
+        return datetime.strptime(date, format)
+    
+    @staticmethod
+    def datetime_to_str_date(date: datetime, format: str = '%d/%m/%Y') -> str:
+        return date.strftime(format)
+
+    @staticmethod
+    def procurar_sessao(connection: sql.Connection, data_visto: date, id_filme: int, id_local: int, id_sessao: int = 0):
+        sessoes: List[Sessao] = []
         try:
             cursor = connection.cursor()
             cursor.execute(""" SELECT * FROM Sessao WHERE id_sessao = ? OR (data_visto = ? AND id_filme = ? AND id_local = ?)""", (id_sessao, data_visto, id_filme, id_local))
             rows = cursor.fetchall()
-            return rows
+            
+            sessoes = list(map(
+                lambda x: Sessao(x[1], x[2], x[3], x[4], x[0]), rows
+            ))
+
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
         finally:
             cursor.close()
+            return sessoes
 
     @staticmethod
     def print_tabela(connection: sql.Connection):

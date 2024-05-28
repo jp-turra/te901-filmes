@@ -2,10 +2,12 @@ from __future__ import print_function, unicode_literals
 
 import re
 import datetime
+import sqlite3 as sql
 
 from PyInquirer import prompt, Validator, ValidationError
 from enum import Enum
 from typing import List, Dict
+from classes import *
 
 class Menu(Enum):
     SAIR=0
@@ -117,7 +119,6 @@ class Question(Enum):
             'type': 'list',
             'name': 'studio',
             'message': 'Insira o estuário do filme:',
-            # TODO: Criar opções relacionando os estúdios cadastrados no BD
             'choices': ['Studio 1', 'Studio 2', 'Studio 3', 'Adicionar Novo Estúdio']
         },
         {
@@ -134,7 +135,6 @@ class Question(Enum):
             'type': 'list',
             'name': 'movie',
             'message': 'Insira o filme da sessão:',
-            # TODO: Criar opções relacionando os filmes cadastrados no BD
             'choices': ['Filme 1', 'Filme 2', 'Filme 3'],
         },
         {
@@ -147,29 +147,12 @@ class Question(Enum):
             'type': 'list',
             'name': 'place',
             'message': 'Selecione o local da sessão:',
-            # TODO: Criar opções relacionando os locais cadastrados no BD
             'choices': ['Local 1', 'Local 2', 'Local 3', 'Adicionar Novo Local'],
-        },
-        {
-            'type': 'input',
-            'name': 'place_name',
-            'message': 'Insira o nome do local:',
-            'when': lambda answers: answers['place'] == 'Adicionar Novo Local',
-            'validate': TextValidator,
-            'when': lambda answers: answers['place'] == 'Adicionar Novo Local',
-        },
-        {
-            'type': 'input',
-            'name': 'place_comment',
-            'message': 'Insira o comentário do local:',
-            'when': lambda answers: answers['place'] == 'Adicionar Novo Local',
-            'validate': TextValidator
         },
         {
             'type': 'checkbox',
             'name': 'people',
             'message': 'Selecione as pessoas que participaram da sessão:',
-            # TODO: Criar opções relacionando as pessoas cadastradas no BD
             'choices': ['Pessoa 1', 'Pessoa 2', 'Pessoa 3'],
             'validate': lambda answers: len(answers['people']) > 0
         },
@@ -181,13 +164,51 @@ class Question(Enum):
         }
     ]
 
+    ADD_PLACE = [
+        {
+            'type': 'input',
+            'name': 'name',
+            'message': 'Insira o Nome do Local:',
+            'validate': TextValidator,
+        },
+        {
+            'type': 'input',
+            'name': 'comment',
+            'message': 'Insira o Comentário do Local:',
+            'validate': TextValidator
+        },
+    ]
+
+    ADD_PERSON = [
+        {
+            'type': 'input',
+            'name': 'name',
+            'message': 'Insira o Nome da Pessoa:',
+            'validate': TextValidator
+        },
+        {
+            'type': 'list',
+            'name': 'sex',
+            'message': 'Insira o Sexo da Pessoa:',
+            'choices': ['Masculino', 'Feminino']
+        }
+    ]
+
+    ADD_EXTRA_PERSON = [
+        {
+            'type': 'list',
+            'name': 'add_extra_person',
+            'message': 'Deseja adicionar mais uma pessoa?',
+            'choices': ['Sim', 'Nao']
+        }
+    ]
 
 class UserInterface():
 
     def __init__(self):
         pass
 
-    def start(self):
+    def start(self, connection: sql.Connection):
         while(True):
             try:
                 answare = prompt(Question.MAIN.value)
@@ -195,14 +216,14 @@ class UserInterface():
                 if answare['menu'] == str(Menu.SAIR.value):
                     exit()
                 elif answare['menu'] == str(Menu.CADASTRAR_FILME.value):
-                    self.add_movie_menu()
+                    self.add_movie_menu(connection)
                 elif answare['menu'] == str(Menu.CADASTRAR_SESSAO.value):
-                    self.add_session_menu()
+                    self.add_session_menu(connection)
                 elif answare['menu'] == str(Menu.LISTAR_FILMES_NOTA.value):
                     self.list_movies_by_grade()
                 elif answare['menu'] == str(Menu.LISTAR_FILMES_TITULO.value):
                     self.list_movies_by_title()
-                elif answare['menu'] == str(Menu.LISTAR_SESSOES_CRONO_DESC.value):
+                elif answare['menu'] == str(Menu.LISTAR_SESSOES.value):
                     self.list_sessions_by_date()
                 elif answare['menu'] == str(Menu.CONSULTAR_TODOS_FILMES.value):
                     self.list_movies()
@@ -213,34 +234,166 @@ class UserInterface():
                 break
 
     
-    def add_movie_menu(self):
+    def add_movie_menu(self, connection: sql.Connection) -> int:
+        estudio_id = 0
+        Question.ADD_MOVIE.value[3]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x.nome,
+                    'value': x.id_estudio,
+                    'short': x.nome
+                }, 
+                Estudio.listar_todos_estudios(connection)
+            )
+        )
+        Question.ADD_MOVIE.value[3]['choices'].append({'name': 'Adicionar Novo Estúdio', 'value': 'Adicionar Novo Estúdio', 'short': 'Adicionar Novo Estúdio'})
+
         answares = prompt(Question.ADD_MOVIE.value)
-        print("Você está criando um novo filme!")
-        print("Nome: ", answares['title'])
-        print("Nota: ", answares['grade'])
-        print("Comentário: ", answares['comment'])
+        
         if answares['studio'] == 'Adicionar Novo Estúdio':
-            print("Estúdio: ", answares['studio_name'])
+            estudio = Estudio(answares["studio_name"])
+            estudio.inserir_estudio(connection)
+            estudio_id = estudio.get_id_estudio(connection)
         else:
-            print("Estúdio: ", answares['studio'])
+            estudio_id = int(answares['studio'])
         
-        # TODO: Adicionar filme ao banco de dados
+        filme = Filme(
+            answares['title'],
+            answares['comment'],
+            answares['grade'],
+            estudio_id
+        )
+        filme.inserir_filme(connection)
+
+        id_filme = filme.get_id_filme(connection)
+
+        # print("Filme {} foi inserido com ID={}!".format(filme.titulo, id_filme))
+
+        return id_filme
+
+    def add_place_menu(self, connection: sql.Connection) -> int:
+        answares = prompt(Question.ADD_PLACE.value)
+
+        local = Local(answares['name'], answares['comment'])
+        local.inserir_local(connection)
+
+        id_local = local.get_id_local(connection)
+
+        # print("Local {} foi inserido com ID={}!".format(local.nome, id_local))
+
+        return id_local
+    
+    def add_people_menu(self, connection: sql.Connection) -> int:
+        answares = prompt(Question.ADD_PERSON.value)
+
+        people = Pessoa(answares['name'], answares['sex'])
+        people.inserir_pessoa(connection)
+
+        id_people = people.get_id_pessoa(connection)
+
+        # print("Pessoa {} foi inserida com ID={}!".format(people.nome, id_people))
+
+        return id_people
+
+    def add_session_menu(self, connection: sql.Connection):
+        add_movie_index = -1
+        add_local_index = -1
+        add_person_index = -1
+
+        # Encontra o index da lista correspondente a cada menu
+        for submenu in Question.ADD_SESSION.value:
+            if submenu['name'] == 'movie':
+                add_movie_index = Question.ADD_SESSION.value.index(submenu)
+            elif submenu['name'] == 'place':
+                add_local_index = Question.ADD_SESSION.value.index(submenu)
+            elif submenu['name'] == 'people':
+                add_person_index = Question.ADD_SESSION.value.index(submenu)
+        
+        # Retorna erro caso uma das opções de adição de sessão não forem encontradas
+        if add_movie_index == -1 or add_local_index == -1 or add_person_index == -1:
+            raise Exception('Erro ao encontrar as opções de adição de sessão!')
 
 
-    def add_session_menu(self):
+        # Atualiza menu de filmes com os listados no banco de dados + a opção de novos filmes.
+        Question.ADD_SESSION.value[add_movie_index]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x.titulo,
+                    'value': x.id_filme,
+                    'short': x.titulo
+                }, 
+                Filme.listar_todos_filmes(connection)
+            )
+        )
+        Question.ADD_SESSION.value[add_movie_index]['choices'].append({'name': 'Adicionar Novo Filme', 'value': 'Adicionar Novo Filme', 'short': 'Adicionar Novo Filme'})
+
+        # Atualiza menu de locais com os listados no banco de dados + a opção de novos locais.
+        Question.ADD_SESSION.value[add_local_index]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x.nome,
+                    'value': x.id_local,
+                    'short': x.nome
+                }, 
+                Local.listar_todos_locais(connection)
+            )
+        )
+        Question.ADD_SESSION.value[add_local_index]['choices'].append({'name': 'Adicionar Novo Local', 'value': 'Adicionar Novo Local', 'short': 'Adicionar Novo Local'})
+
+        # Atualiza menu de pessoas com os listados no banco de dados + a opção de novas pessoas.
+        Question.ADD_SESSION.value[add_person_index]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x.nome,
+                    'value': x.id_pessoa,
+                    'short': x.nome
+                }, 
+                Pessoa.listar_todas_pessoas(connection)
+            )
+        )
+        Question.ADD_SESSION.value[add_person_index]['choices'].append({'name': 'Adicionar Nova Pessoa', 'value': 'Adicionar Nova Pessoa', 'short': 'Adicionar Nova Pessoa'})
+
+        # Pergunta ao usuário as opções de adição de sessão.
         answares = prompt(Question.ADD_SESSION.value)
-        print("Você está criando uma nova sessão!")
-        print("Filme: ", answares['movie'])
-        print("Data: ", answares['date'])
+        id_local = answares['place']
+        id_filme = answares['movie']
+
+        # Adiciona o novo filme caso a opção de adição de novo filme tenha sido escolhida
+        if answares['movie'] == 'Adicionar Novo Filme':
+            id_filme = self.add_movie_menu(connection)
+
+        # Adiciona o novo local caso a opção de adição de novo local tenha sido escolhida
         if answares['place'] == 'Adicionar Novo Local':
-            print("Local: ", answares['place_name'])
-            print("Comentário: ", answares['place_comment'])
-        else:
-            print("Local: ", answares['place'])
-        print("Pessoas: ", answares['people'])
-        print("Comentário: ", answares['comment'])
+            id_local = self.add_place_menu(connection)
         
-        # TODO: Adicionar sessão ao banco de dados
+        # Cria a nova sessão
+        sessao = Sessao(answares['date'], answares['comment'], id_filme, id_local)
+        sessao.data_visto = Sessao.datetime_to_str_date(sessao.data_visto, '%Y/%m/%d')
+        sessao.inserir_sessao(connection)
+
+        # print("Sessão {} foi inserida com ID={}!".format(sessao.data_visto, sessao.get_id_sessao(connection)))
+
+        # Passa por cada pessoa selecionada e adiciona na sessão
+        for person in answares['people']:
+            
+            # Adiciona nova pessoa caso a opção de adição de nova pessoa tenha sido escolhida
+            if person == 'Adicionar Nova Pessoa':
+                person_id = self.add_people_menu(connection)
+                sessao_pessoa = SessaoPessoa(person_id, sessao.get_id_sessao(connection))
+                sessao_pessoa.inserir_sessao_pessoa(connection)
+
+                # Mostra menu para adicionar pessoas extras
+                new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+                while new_person_answares['add_extra_person'] == "Sim":
+                    extra_person_id = self.add_people_menu(connection)
+                    sessao_pessoa = SessaoPessoa(extra_person_id, sessao.get_id_sessao(connection))
+                    sessao_pessoa.inserir_sessao_pessoa(connection)
+                    # print("Pessoa {} inserida na sessão {}!".format(sessao_pessoa.id_pessoa, sessao.id_sessao))
+            else:
+                # Adiciona pessoa existente a uma sessão
+                sessao_pessoa = SessaoPessoa(int(person), sessao.get_id_sessao(connection))
+                sessao_pessoa.inserir_sessao_pessoa(connection)
+                # print("Pessoa {} inserida na sessão {}!".format(sessao_pessoa.id_pessoa, sessao.id_sessao))
     
     def list_movies_by_grade(self):
         pass
@@ -249,6 +402,7 @@ class UserInterface():
         pass
     
     def list_sessions_by_date(self):
+        # (TURRA) 6. Listar sessões (ordenar por data descendente) (data + nome_filme)
         pass
     
     def list_movies(self):
@@ -258,4 +412,6 @@ class UserInterface():
         pass
         
 if __name__ == "__main__":
-    UserInterface().start()
+    connection = sql.connect("database/filmes.db")
+
+    UserInterface().start(connection)
