@@ -1,6 +1,6 @@
 import sqlite3 as sql
+import time
 
-from datetime import datetime, date
 from pprint import pprint
 from typing import List
 
@@ -631,7 +631,11 @@ class Sessao:
 
     def __init__(self, data: str, comentario: str, id_filme: int, id_local: Local, id: int = 0) -> None:
         self.id_sessao = id
-        self.data_visto = self.str_date_to_datatime(data, '%Y/%m/%d')
+        try:
+            self.data_visto = self.str_date_to_struct_time(data, '%Y/%m/%d')
+        except:
+            if data != "":
+                self.data_visto = self.str_date_to_struct_time(data)
         self.comentario = comentario
         self.id_filme = id_filme
         self.id_local = id_local
@@ -668,16 +672,76 @@ class Sessao:
         finally:
             cursor.close()
 
-    @staticmethod
-    def str_date_to_datatime(date: str, format: str = '%d/%m/%Y') -> datetime:
-        return datetime.strptime(date, format)
-    
-    @staticmethod
-    def datetime_to_str_date(date: datetime, format: str = '%d/%m/%Y') -> str:
-        return date.strftime(format)
+    def listar_sessoes(connection: sql.Connection, columns: str, order_by: str = "", limit: str = "", do_inner_join: bool = False):
+        sessoes: List[Sessao] = []
+        filme: Filme
+        local: Local
+
+        try:
+            cursor = connection.cursor()
+
+            data_pos = -1
+            comentario_pos = -1
+            id_filme_pos = -1
+            id_local_pos = -1
+
+            query = f"SELECT {columns} FROM Sessao"
+
+            split_columns = columns.split(",")
+            for i in range(len(split_columns)):
+                if split_columns[i].replace(" ", "") == "data_visto":
+                    data_pos = i
+                elif split_columns[i].replace(" ", "") == "comentario":
+                    comentario_pos = i
+                elif split_columns[i].replace(" ", "") == "id_filme":
+                    id_filme_pos = i
+                    if do_inner_join:
+                        query += " INNER JOIN Filme USING (id_filme)"
+                elif split_columns[i].replace(" ", "") == "id_local":
+                    id_local_pos = i
+
+            if order_by != "":
+                query += f" ORDER BY {order_by}"
+            
+            if limit != "":
+                query += f" LIMIT {limit}"
+
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            sessoes = list(map(
+                lambda x: Sessao(
+                    x[data_pos] if data_pos >= 0 else "", 
+                    x[comentario_pos] if comentario_pos >= 0 else "", 
+                    x[id_filme_pos] if id_filme_pos >= 0 else 0, 
+                    x[id_local_pos] if id_local_pos >= 0 else 0
+                ), rows
+            ))
+
+            if do_inner_join:
+                for sessao in sessoes:
+                    if id_filme_pos >= 0:
+                        sessao.filme = Filme.procurar_filme(connection, "", sessao.id_filme)[0]
+                    if id_local_pos >= 0:
+                        sessao.local = Local.procurar_local(connection, "", sessao.id_local)[0]
+
+            return sessoes
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta Sessão: {e}")
+            return []
+        finally:
+            cursor.close()
 
     @staticmethod
-    def procurar_sessao(connection: sql.Connection, data_visto: date, id_filme: int, id_local: int, id_sessao: int = 0):
+    def str_date_to_struct_time(date: str, format: str = '%d/%m/%Y') -> time.struct_time:
+        return time.strptime(date, format)
+    
+    @staticmethod
+    def struct_time_to_str_date(date: time.struct_time, format: str = '%d/%m/%Y') -> str:
+        return time.strftime(format, date)
+
+    @staticmethod
+    def procurar_sessao(connection: sql.Connection, data_visto: time.struct_time, id_filme: int, id_local: int, id_sessao: int = 0):
         sessoes: List[Sessao] = []
         try:
             cursor = connection.cursor()

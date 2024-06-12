@@ -1,7 +1,7 @@
 from __future__ import print_function, unicode_literals
 
 import re
-import datetime
+import time
 import sqlite3 as sql
 
 from PyInquirer import prompt, Validator, ValidationError
@@ -77,7 +77,8 @@ class DateValidator(Validator):
                 raise ValueError
             
             # Primeiro filme criado foi em 1895
-            if int(res_group[2]) < 1895 or int(res_group[2]) > datetime.date.today().year:
+            year = time.ctime().split()[4]
+            if int(res_group[2]) < 1895 or int(res_group[2]) > int(year):
                 raise ValueError
             
             return True
@@ -203,6 +204,15 @@ class Question(Enum):
         }
     ]
 
+    LIST_SESSIONS_RESULT = [
+        {
+            'type': 'list',
+            'name': 'session',
+            'message': 'Lista de sessões encontradas:',
+            'choices': ['Nenhum resultado encontrado', 'Voltar']
+        }
+    ]
+
 class UserInterface():
 
     def __init__(self):
@@ -224,7 +234,7 @@ class UserInterface():
                 elif answare['menu'] == str(Menu.LISTAR_FILMES_TITULO.value):
                     self.list_movies_by_title()
                 elif answare['menu'] == str(Menu.LISTAR_SESSOES.value):
-                    self.list_sessions_by_date()
+                    self.list_sessions_by_date(connection)
                 elif answare['menu'] == str(Menu.CONSULTAR_TODOS_FILMES.value):
                     self.list_movies()
                 elif answare['menu'] == str(Menu.CONSULTAR_TODAS_SESSOES.value):
@@ -368,7 +378,7 @@ class UserInterface():
         
         # Cria a nova sessão
         sessao = Sessao(answares['date'], answares['comment'], id_filme, id_local)
-        sessao.data_visto = Sessao.datetime_to_str_date(sessao.data_visto, '%Y/%m/%d')
+        sessao.data_visto = Sessao.struct_time_to_str_date(sessao.data_visto, '%Y/%m/%d')
         sessao.inserir_sessao(connection)
 
         # print("Sessão {} foi inserida com ID={}!".format(sessao.data_visto, sessao.get_id_sessao(connection)))
@@ -401,9 +411,26 @@ class UserInterface():
     def list_movies_by_title(self):
         pass
     
-    def list_sessions_by_date(self):
+    def list_sessions_by_date(self, connection):
         # (TURRA) 6. Listar sessões (ordenar por data descendente) (data + nome_filme)
-        pass
+        sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme", "data_visto ASC", do_inner_join=True)
+
+        Question.LIST_SESSIONS_RESULT.value[0]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': "Sessão {} - {}".format(Sessao.struct_time_to_str_date(x.data_visto), x.filme.titulo),
+                    'value': x.id_sessao,
+                    'short': "Sessão {} - {}".format(Sessao.struct_time_to_str_date(x.data_visto), x.filme.titulo)
+                }, 
+                sessoes
+            )
+        )
+        Question.LIST_SESSIONS_RESULT.value[0]['choices'].append({'name': 'Voltar', 'value': -1, 'short': 'Voltar'})
+        
+        # input("Pressione ENTER para voltar")
+
+        prompt(Question.LIST_SESSIONS_RESULT.value)
+
     
     def list_movies(self):
         pass
