@@ -344,7 +344,7 @@ class UserInterface():
         for diretor in answares['diretor']:
             person_id = 0
             if diretor == 'Adicionar Novo Diretor':
-                print("Adicionar Novo Diretor")
+                print("Adicionar Novo(a) Diretor(a)")
                 person_id = self.add_people_menu(connection)
                 film_function = FuncionarioFilme(person_id, id_filme, funcao_diretor_id)
                 film_function.inserir_funcionario_filme(connection)
@@ -352,9 +352,12 @@ class UserInterface():
                 # Mostra menu para adicionar pessoas extras
                 new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
                 while new_person_answares['add_extra_person'] == "Sim":
+                    print("Adicionar Novo(a) Diretor(a) Extra")
                     extra_person_id = self.add_people_menu(connection)
                     film_function = FuncionarioFilme(extra_person_id, id_filme, funcao_diretor_id)
                     film_function.inserir_funcionario_filme(connection)
+                    new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+
             else:
                 person_id = int(diretor)
                 film_function = FuncionarioFilme(person_id, id_filme, funcao_diretor_id)
@@ -363,7 +366,7 @@ class UserInterface():
         for actor in answares['actors']:
             person_id = 0
             if actor == 'Adicionar Novo Ator':
-                print("Adicionar Novo Ator")
+                print("Adicionar Novo(a) Ator(iz)")
                 person_id = self.add_people_menu(connection)
                 film_function = FuncionarioFilme(person_id, id_filme, actor_function_id)
                 film_function.inserir_funcionario_filme(connection)
@@ -371,9 +374,12 @@ class UserInterface():
                 # Mostra menu para adicionar pessoas extras
                 new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
                 while new_person_answares['add_extra_person'] == "Sim":
+                    print("Adicionar Novo(a) Ator(iz) Extra")
                     extra_person_id = self.add_people_menu(connection)
                     film_function = FuncionarioFilme(extra_person_id, id_filme, actor_function_id)
                     film_function.inserir_funcionario_filme(connection)
+                    new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+
             else:
                 person_id = int(actor)
                 film_function = FuncionarioFilme(person_id, id_filme, actor_function_id)
@@ -500,7 +506,8 @@ class UserInterface():
                     extra_person_id = self.add_people_menu(connection)
                     sessao_pessoa = SessaoPessoa(extra_person_id, sessao.get_id_sessao(connection))
                     sessao_pessoa.inserir_sessao_pessoa(connection)
-                    # print("Pessoa {} inserida na sessão {}!".format(sessao_pessoa.id_pessoa, sessao.id_sessao))
+                    new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+
             else:
                 # Adiciona pessoa existente a uma sessão
                 sessao_pessoa = SessaoPessoa(int(person), sessao.get_id_sessao(connection))
