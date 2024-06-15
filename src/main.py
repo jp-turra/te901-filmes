@@ -210,7 +210,18 @@ class Question(Enum):
             'type': 'list',
             'name': 'sex',
             'message': 'Insira o Sexo da Pessoa:',
-            'choices': ['Masculino', 'Feminino']
+            'choices': [
+                {
+                    'name': 'Masculino',
+                    'value': SexoPessoa.MASCULINO,
+                    'short': 'Masc'
+                },
+                {
+                    'name': 'Feminino',
+                    'value': SexoPessoa.FEMININO,
+                    'short': 'Fem'
+                }
+            ]
         }
     ]
 
@@ -333,22 +344,40 @@ class UserInterface():
         for diretor in answares['diretor']:
             person_id = 0
             if diretor == 'Adicionar Novo Diretor':
+                print("Adicionar Novo Diretor")
                 person_id = self.add_people_menu(connection)
+                film_function = FuncionarioFilme(person_id, id_filme, funcao_diretor_id)
+                film_function.inserir_funcionario_filme(connection)
+
+                # Mostra menu para adicionar pessoas extras
+                new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+                while new_person_answares['add_extra_person'] == "Sim":
+                    extra_person_id = self.add_people_menu(connection)
+                    film_function = FuncionarioFilme(extra_person_id, id_filme, funcao_diretor_id)
+                    film_function.inserir_funcionario_filme(connection)
             else:
                 person_id = int(diretor)
+                film_function = FuncionarioFilme(person_id, id_filme, funcao_diretor_id)
+                film_function.inserir_funcionario_filme(connection)
 
-            film_function = FuncionarioFilme(id_filme, person_id, funcao_diretor_id)
-            film_function.inserir_funcionario_filme(connection)
-
-        for actor in answares['actor']:
+        for actor in answares['actors']:
             person_id = 0
             if actor == 'Adicionar Novo Ator':
+                print("Adicionar Novo Ator")
                 person_id = self.add_people_menu(connection)
+                film_function = FuncionarioFilme(person_id, id_filme, actor_function_id)
+                film_function.inserir_funcionario_filme(connection)
+
+                # Mostra menu para adicionar pessoas extras
+                new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
+                while new_person_answares['add_extra_person'] == "Sim":
+                    extra_person_id = self.add_people_menu(connection)
+                    film_function = FuncionarioFilme(extra_person_id, id_filme, actor_function_id)
+                    film_function.inserir_funcionario_filme(connection)
             else:
                 person_id = int(actor)
-
-            film_function = FuncionarioFilme(id_filme, person_id, actor_function_id)
-            film_function.inserir_funcionario_filme(connection)
+                film_function = FuncionarioFilme(person_id, id_filme, actor_function_id)
+                film_function.inserir_funcionario_filme(connection)
 
         # print("Filme {} foi inserido com ID={}!".format(filme.titulo, id_filme))
 

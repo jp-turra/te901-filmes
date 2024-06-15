@@ -549,9 +549,14 @@ class FuncionarioFilme:
         try:
             cursor = connection.cursor()
             if funcao_id == 0:
-                cursor.execute("SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme INNER JOIN Pessoa USING (id_pessoa)")
+                cursor.execute("""SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme 
+                                INNER JOIN Pessoa USING (id_pessoa) 
+                                ORDER BY Pessoa.nome""")
             else:
-                cursor.execute("SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme INNER JOIN Pessoa ON (FuncionarioFilme.id_pessoa = Pessoa.id_pessoa AND FuncionarioFilme.id_funcao = ?)", (funcao_id,))
+                cursor.execute("""SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme 
+                                INNER JOIN Pessoa ON (
+                                    FuncionarioFilme.id_pessoa = Pessoa.id_pessoa AND FuncionarioFilme.id_funcao = ?)
+                                ORDER BY Pessoa.nome""", (funcao_id,))
 
             rows = cursor.fetchall()
 
