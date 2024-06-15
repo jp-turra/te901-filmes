@@ -1,15 +1,7 @@
 import sqlite3 as sql
 import time
 
-from datetime import date
 from classes import *
-from ui import TerminalUI
-
-db_path = "filmes.db"
-# Conectar com o banco de dados
-def conectar_banco():
-    connection = sql.connect(db_path)
-    return connection
 
 def printar_linhas(rows: list):
     for row in rows:
@@ -114,34 +106,16 @@ def popular_tabelas(connection: sql.Connection):
     # ----------------- Filmes ------------------------
     # -------------------------------------------------
     oppenheimer = Filme("Opennheimer", "Filme da bomba atômica. Muito bom", 5, universal.get_id_estudio(connection))
-    oppenheimer.interir_filme(connection)
+    oppenheimer.inserir_filme(connection)
 
     barbie = Filme("Barbie", "Live-Action da barbie", 4, warner_bros.get_id_estudio(connection))
-    barbie.interir_filme(connection)
-
-    # elvis = Filme("Elvis", "Ainda não assisti", 1, ACHAR_ESTUDIO)
-    # elvis.interir_filme(connection)
+    barbie.inserir_filme(connection)
 
     doutor_estranho_2 = Filme("Doutor Estranho no Multiverso da Loucura", "Filme que explorou ainda mais o multiverso.", 4, marvel.get_id_estudio(connection))
-    doutor_estranho_2.interir_filme(connection)
-
-    # orfa_2 = Filme("Órfã 2: A Origem", "Não assisti", 1, ACHAR_ESTUDIO)
-    # orfa_2.interir_filme(connection)
-
-    # duna = Filme("Duna", "Filme muito bom", 5, ACHAR_ESTUDIO)
-    # duna.interir_filme(connection)
-
-    # homem_aranha_3 = Filme("Homem-Aranha: Sem volta para casa", "Filme muito bom", 5, ACHAR_ESTUDIO)
-    # homem_aranha_3.interir_filme(connection)
-
-    # interstellar = Filme("Interstellar", "Filme muito bom", 5, ACHAR_ESTUDIO)
-    # interstellar.interir_filme(connection)
-
-    # matrix = Filme("Matrix: Resurreição", "Deixou a desejar", 2, ACHAR_ESTUDIO)
-    # matrix.interir_filme(connection)
+    doutor_estranho_2.inserir_filme(connection)
 
     deadpool = Filme("Deadpool 2", "Filme muito bom", 5, century_studios.get_id_estudio(connection))
-    deadpool.interir_filme(connection)
+    deadpool.inserir_filme(connection)
 
     # -------------------------------------------------
     # ----------------- Generos -----------------------
@@ -320,23 +294,23 @@ def popular_tabelas(connection: sql.Connection):
     # -------------------------------------------------
     # --------------- Locais --------------------------
     # -------------------------------------------------
-    cinema_sjda = Local("Cinema Shopping Jardim das Americas", "")
+    cinema_sjda = Local("Cinema Shopping Jardim das Americas", "Bem climatizado")
     cinema_sjda.inserir_local(connection)
 
-    casa_da_mae = Local("Casa da Mae", "")
+    casa_da_mae = Local("Casa da Mae", "Lugar mais confortável do mundo, tem bastente comida")
     casa_da_mae.inserir_local(connection)
 
-    em_casa = Local("Em casa", "")
+    em_casa = Local("Em casa", "Boa qualidade de imagem, sofa é bom que da sono")
     em_casa.inserir_local(connection)
 
-    casa_do_amigo = Local("Casa do Amigo", "")
+    casa_do_amigo = Local("Casa do Amigo", "Muito bacana, muitos streamings disponívels")
     casa_do_amigo.inserir_local(connection)
 
     # -------------------------------------------------
     # ------------------ Sessao -----------------------
     # -------------------------------------------------
 
-    sessao_deadpool_1 = Sessao(date(2023, 12, 27), "", deadpool.get_id_filme(connection), cinema_sjda.get_id_local(connection))
+    sessao_deadpool_1 = Sessao("2023/12/27", "Filme muito engraçado", deadpool.get_id_filme(connection), cinema_sjda.get_id_local(connection))
     sessao_deadpool_1.inserir_sessao(connection)
 
     # -------------------------------------------------
@@ -348,26 +322,3 @@ def popular_tabelas(connection: sql.Connection):
     ]
     for sessao_pessoa in sessao_pessoa_deadpool_1:
         sessao_pessoa.inserir_sessao_pessoa(connection)
-
-# Programa
-connection = conectar_banco()
-
-# criar_tabelas(connection)
-
-# popular_tabelas(connection)
-
-console = TerminalUI()
-
-while console.main_menu != 99 and console.auxiliar_menu != 99:
-    try:
-        console.run_interface()
-    except KeyboardInterrupt:
-        break
-    except sql.Error as e:
-        print(f"Erro ao executar a consulta: {e}")
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-    except:
-        print("Erro inesperado!!")
-
-connection.close()

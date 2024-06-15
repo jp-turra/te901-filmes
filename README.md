@@ -5,6 +5,7 @@
 1. `python -m venv env`
 2. `env\Scripts\activate.bat` ou `.\env\Scripts\Activate.ps1`. Deve abrir um ambiente virtual, e os comandos a seguir devem ser usados dentro dele.
 3. `pip install -r requirements.txt` para instalar as dependências.
+4. `python src/main.py --create` para iniciar o projeto criando o banco de dados e populando as tabelas.
 
 ## Modelo Lógico
 Filme (id_filme, titulo, comentário, nota, #id_estudio)

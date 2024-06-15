@@ -2,7 +2,7 @@ import sqlite3 as sql
 import time
 
 from pprint import pprint
-from typing import List
+from typing import List, Dict
 
 class Estudio:
     id_estudio = 0
@@ -76,7 +76,7 @@ class Estudio:
 
             return estudios
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[listar_todos_estudios] Erro ao executar a consulta: {e}")
             return []
         finally:
             cursor.close()
@@ -340,7 +340,8 @@ class Pessoa:
             
             return self.id_pessoa
         except sql.Error as e:
-            print(f"Erro ao recuperar id_pessoa: {e}")
+            print(f"[get_id_pessoa] Erro ao recuperar id_pessoa: {e}")
+            return 0
 
     def inserir_pessoa(self, connection: sql.Connection):
         try:
@@ -353,7 +354,7 @@ class Pessoa:
             connection.commit()
             print(f"Pessoa '{self.nome}' inserida com sucesso!")
         except sql.Error as e:
-            print(f"Erro ao inserir pessoa: {e}")
+            print(f"[inseririr_pessoa] Erro ao inserir pessoa: {e}")
         finally:
             cursor.close()
 
@@ -362,19 +363,27 @@ class Pessoa:
         pessoa: List[Pessoa] = []
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM Pessoa WHERE id_pessoa = ? OR nome = ?", (id_pessoa, nome))
+
+            if id_pessoa > 0:
+                cursor.execute("SELECT * FROM Pessoa WHERE id_pessoa = ?", (id_pessoa,))
+            elif len(nome) > 0:
+                cursor.execute("SELECT * FROM Pessoa WHERE nome LIKE ?", (nome,))
+            else:
+                cursor.execute("SELECT * FROM Pessoa")
+
             rows = cursor.fetchall()
 
             pessoa = list(map(
                 lambda x: Pessoa(x[1], x[2], x[0]), rows
             ))
 
+            return pessoa
+
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[procurar_pessoa] Erro ao executar a consulta: {e}")
             return []
         finally:
             cursor.close()
-            return pessoa
 
     @staticmethod
     def listar_todas_pessoas(connection: sql.Connection):
@@ -389,7 +398,7 @@ class Pessoa:
 
             return pessoas
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[listar_todas_pessoas] Erro ao executar a consulta: {e}")
             return []
         finally:
             cursor.close()
@@ -406,7 +415,7 @@ class Pessoa:
             pprint(rows)
                     
         except sql.Error as e:
-            print(f"Erro ao executar a consulta Pessoa: {e}")
+            print(f"[print_tabela] Erro ao executar a consulta Pessoa: {e}")
         finally:
             cursor.close()
 
@@ -424,46 +433,59 @@ class Funcao:
     def get_id_funcao(self, connection: sql.Connection):
         try:
             if self.id_funcao == 0:
-                funcao = self.procurar_funcao(connection, self.nome)
-                if len(funcao) > 0:
+                funcao_list = self.procurar_funcao(connection, self.nome)
+                funcao = None if len(funcao_list) == 0 else funcao_list
+                if funcao is not None and len(funcao) > 0:
                     self.id_funcao = funcao[0].id_funcao
                 else:
                     raise sql.Error(f"Função '{self.nome}' nao existe")
 
             return self.id_funcao
         except sql.Error as e:
-            print(f"Erro ao recuperar id_funcao: {e}")
+            print(f"[get_id_funcao] Erro ao recuperar id_funcao: {e}")
 
     def inserir_funcao(self, connection: sql.Connection):
         try:
             cursor = connection.cursor()
-            funcao = self.procurar_funcao(connection, self.nome)
-            if len(funcao) > 0:
+            funcao_list = self.procurar_funcao(connection, self.nome)
+            funcao = None if len(funcao_list) == 0 else funcao_list
+            if funcao is not None and len(funcao) > 0:
                 raise sql.Error(f"Função '{self.nome}' ja existe")
             
             cursor.execute("INSERT INTO Funcao (nome) VALUES (?)", (self.nome,))
             connection.commit()
         except sql.Error as e:
-            print(f"Erro ao inserir funcao: {e}")
+            print(f"[inserir_funcao] Erro ao inserir funcao: {e}")
         finally:
             cursor.close()
 
-    def procurar_funcao(self, connection: sql.Connection, nome: str, id_funcao: int = 0):
+    @staticmethod
+    def procurar_funcao(connection: sql.Connection, nome: str, id_funcao: int = 0):
         jobs: List[Funcao] = []
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM Funcao WHERE id_funcao = ? OR nome = ?", (id_funcao, nome))
+            query = "SELECT * FROM Funcao"
+            if id_funcao > 0:
+                cursor.execute(query + " WHERE id_funcao = ?", (id_funcao,))
+            elif len(nome) > 0:
+                cursor.execute(query + " WHERE nome = ?", (nome,))
+            else:
+                cursor.execute(query)
+
             rows = cursor.fetchall()
 
             jobs = list(map(
                 lambda x: Funcao(x[1], x[0]), rows
             ))
 
+            return jobs
+
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[procurar_funcao]: Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
-            return jobs
+            
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
@@ -494,7 +516,7 @@ class FuncionarioFilme:
         try:
             cursor = connection.cursor()
             funcionario_filme = self.procurar_funcionario_filme(connection, self.id_pessoa, self.id_filme, self.id_funcao)
-            if len(funcionario_filme) > 0:
+            if funcionario_filme is not None:
                 raise sql.Error(f"FuncionarioFilme id_pessoa='{self.id_pessoa}' id_filme='{self.id_filme}' id_funcao='{self.id_funcao}' ja existe")
 
             cursor.execute("INSERT INTO FuncionarioFilme (id_pessoa, id_filme, id_funcao) VALUES (?, ?, ?)", (self.id_pessoa, self.id_filme, self.id_funcao))
@@ -505,13 +527,42 @@ class FuncionarioFilme:
             cursor.close()
 
     def procurar_funcionario_filme(self, connection: sql.Connection, id_pessoa: int, id_filme: int, id_funcao: int):
+        workers: List[FuncionarioFilme] = []
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM FuncionarioFilme WHERE id_pessoa = ? AND id_filme = ? AND id_funcao = ?", (id_pessoa, id_filme, id_funcao))
             rows = cursor.fetchall()
-            return rows
+
+            workers = list(map(
+                lambda x: FuncionarioFilme(x[0], x[1], x[2]), rows
+            ))
+
+            return None if len(workers) == 0 else workers[0]
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+            return None
+        finally:
+            cursor.close()
+       
+    @staticmethod
+    def listar_todos_nomes(connection: sql.Connection, funcao_id: int = 0) -> List[Dict[str, str]]:
+        try:
+            cursor = connection.cursor()
+            if funcao_id == 0:
+                cursor.execute("SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme INNER JOIN Pessoa USING (id_pessoa)")
+            else:
+                cursor.execute("SELECT Pessoa.nome, FuncionarioFilme.id_pessoa FROM FuncionarioFilme INNER JOIN Pessoa ON (FuncionarioFilme.id_pessoa = Pessoa.id_pessoa AND FuncionarioFilme.id_funcao = ?)", (funcao_id,))
+
+            rows = cursor.fetchall()
+
+            workers = list(map(
+                lambda x: {"name": x[0], "value": x[1]}, rows
+            ))
+
+            return workers
+        except sql.Error as e:
+            print(f"[listar_todos_nomes] Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
 
@@ -526,7 +577,7 @@ class FuncionarioFilme:
                 for i in row:
                     print(i, end="\t")
         except sql.Error as e:
-            print(f"Erro ao executar a consulta FuncionarioFilme: {e}")
+            print(f"[print_tabela] Erro ao executar a consulta FuncionarioFilme: {e}")
         finally:
             cursor.close()
 
@@ -555,7 +606,7 @@ class Local:
             return self.id_local
         
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[get_id_local] Erro ao executar a consulta: {e}")
 
     def inserir_local(self, connection: sql.Connection):
         try:
@@ -567,7 +618,7 @@ class Local:
             cursor.execute("INSERT INTO Local (nome, comentario) VALUES (?, ?)", (self.nome, self.comentario))
             connection.commit()
         except sql.Error as e:
-            print(f"Erro ao inserir Local: {e}")
+            print(f"[inserir_local] Erro ao inserir Local: {e}")
         finally:
             cursor.close()
 
@@ -584,7 +635,7 @@ class Local:
             ))
 
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[procurar_local] Erro ao executar a consulta: {e}")
         finally:
             cursor.close()
             return locais
@@ -602,7 +653,7 @@ class Local:
 
             return locais
         except sql.Error as e:
-            print(f"Erro ao executar a consulta Local: {e}")
+            print(f"[listar_todos_locais] Erro ao executar a consulta Local: {e}")
             return []
         finally:
             cursor.close()
@@ -618,7 +669,7 @@ class Local:
                 for i in row:
                     print(i, end="\t")
         except sql.Error as e:
-            print(f"Erro ao executar a consulta Local: {e}")
+            print(f"[print_tabela] Erro ao executar a consulta Local: {e}")
         finally:
             cursor.close()
 
@@ -656,19 +707,21 @@ class Sessao:
         
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+            return 0
 
     def inserir_sessao(self, connection: sql.Connection):
         try:
             cursor = connection.cursor()
             sessao = self.procurar_sessao(connection, self.data_visto, self.id_filme, self.id_local)
             if len(sessao) > 0:
-                raise sql.Error(f"Sessão '{self.data_visto}' ja existe")
+                raise sql.Error(f"Sessão '{self.struct_time_to_str_date(self.data_visto)}' ja existe")
             
-            cursor.execute("INSERT INTO Sessao (data_visto, comentario, id_filme, id_local) VALUES (?, ?, ?, ?)", (self.data_visto, self.comentario, self.id_filme, self.id_local))
+            data_visto_str = Sessao.struct_time_to_str_date(self.data_visto, '%Y/%m/%d')
+            cursor.execute("INSERT INTO Sessao (data_visto, comentario, id_filme, id_local) VALUES (?, ?, ?, ?)", (data_visto_str, self.comentario, self.id_filme, self.id_local))
             connection.commit()
-            print(f"Sessão data '{self.data_visto}' id_filme '{self.id_filme}' id_local '{self.id_local}' inserida com sucesso")	
+            print(f"Sessão data '{self.struct_time_to_str_date(self.data_visto)}' id_filme '{self.id_filme}' id_local '{self.id_local}' inserida com sucesso")	
         except sql.Error as e:
-            print(f"Erro ao inserir Sessão: {e}")
+            print(f"[inserir_sessao] Erro ao inserir Sessão: {e}")
         finally:
             cursor.close()
 
@@ -727,7 +780,7 @@ class Sessao:
 
             return sessoes
         except sql.Error as e:
-            print(f"Erro ao executar a consulta Sessão: {e}")
+            print(f"[listar_sessoes] Erro ao executar a consulta Sessão: {e}")
             return []
         finally:
             cursor.close()
@@ -745,18 +798,25 @@ class Sessao:
         sessoes: List[Sessao] = []
         try:
             cursor = connection.cursor()
-            cursor.execute(""" SELECT * FROM Sessao WHERE id_sessao = ? OR (data_visto = ? AND id_filme = ? AND id_local = ?)""", (id_sessao, data_visto, id_filme, id_local))
+            if id_sessao > 0:
+                cursor.execute(""" SELECT * FROM Sessao WHERE id_sessao = ?""", (id_sessao,))
+            else:
+                data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%Y/%m/%d')
+                cursor.execute(""" SELECT * FROM Sessao WHERE data_visto = ? AND id_filme = ? AND id_local = ?""", (data_visto_str, id_filme, id_local))
+
             rows = cursor.fetchall()
             
             sessoes = list(map(
                 lambda x: Sessao(x[1], x[2], x[3], x[4], x[0]), rows
             ))
+            
+            return sessoes
 
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[procurar_sessao] Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
-            return sessoes
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
@@ -769,7 +829,7 @@ class Sessao:
                 for i in row:
                     print(i, end="\t")
         except sql.Error as e:
-            print(f"Erro ao executar a consulta Sessao: {e}")
+            print(f"[print_tabela] Erro ao executar a consulta Sessao: {e}")
         finally:
             cursor.close()
 
@@ -792,18 +852,33 @@ class SessaoPessoa:
             connection.commit()
             print(f"SessãoPessoa id_pessoa='{self.id_pessoa}' id_sessao='{self.id_sessao}' inserida com sucesso!")
         except sql.Error as e:
-            print(f"Erro ao inserir SessãoPessoa: {e}")
+            print(f"[inserir_sessao_pessoa] Erro ao inserir SessãoPessoa: {e}")
         finally:
             cursor.close()
 
-    def procurar_sessao_pessoa(self, connection: sql.Connection, id_pessoa: int, id_sessao: int):
+    def procurar_sessao_pessoa(self, connection: sql.Connection, id_pessoa: int = 0, id_sessao: int = 0):
+        sessao_pessoas: List[SessaoPessoa] = []
         try:
             cursor = connection.cursor()
-            cursor.execute(""" SELECT * FROM SessaoPessoa WHERE id_pessoa = ? AND id_sessao = ?""", (id_pessoa, id_sessao))
+            if id_sessao > 0 and id_pessoa == 0:
+                cursor.execute(" SELECT * FROM SessaoPessoa WHERE id_sessao = ?", (id_sessao,))
+            elif id_pessoa > 0 and id_sessao == 0:
+                cursor.execute(" SELECT * FROM SessaoPessoa WHERE id_pessoa = ?", (id_pessoa,))
+            elif id_pessoa > 0 and id_sessao > 0:
+                cursor.execute(" SELECT * FROM SessaoPessoa WHERE id_pessoa = ? AND id_sessao = ?", (id_pessoa, id_sessao))
+            else:
+                cursor.execute(" SELECT * FROM SessaoPessoa")
+
             rows = cursor.fetchall()
-            return rows
+
+            sessao_pessoas = list(map(
+                lambda x: SessaoPessoa(x[0], x[1]), rows
+            ))
+
+            return sessao_pessoas
         except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+            print(f"[procurar_sessao_pessoa] Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
     
@@ -818,6 +893,6 @@ class SessaoPessoa:
                 for i in row:
                     print(i, end="\t")
         except sql.Error as e:
-            print(f"Erro ao executar a consulta SessaoPessoa: {e}")
+            print(f"[print_tabela] Erro ao executar a consulta SessaoPessoa: {e}")
         finally:
             cursor.close()

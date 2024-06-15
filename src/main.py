@@ -3,11 +3,15 @@ from __future__ import print_function, unicode_literals
 import re
 import time
 import sqlite3 as sql
+import argparse
 
-from PyInquirer import prompt, Validator, ValidationError
 from enum import Enum
-from typing import List, Dict
 from classes import *
+from PyInquirer import prompt, Validator, ValidationError
+from populate_db import criar_tabelas, popular_tabelas
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--create -c", action="store_true", dest="create_tables", default=False, help="Cria e popula todas as tabelas antes de iniciar a UI")
 
 class Menu(Enum):
     SAIR=0
@@ -119,16 +123,31 @@ class Question(Enum):
         {
             'type': 'list',
             'name': 'studio',
-            'message': 'Insira o estuário do filme:',
+            'message': 'Insira o estúdio do filme:',
             'choices': ['Studio 1', 'Studio 2', 'Studio 3', 'Adicionar Novo Estúdio']
         },
         {
             'type': 'input',
             'name': 'studio_name',
-            'message': 'Insira o nome do estuário:',
+            'message': 'Insira o nome do estúdio:',
             'when': lambda answers: answers['studio'] == 'Adicionar Novo Estúdio',
             'validate': TextValidator
+        },
+        {
+            'type': 'checkbox',
+            'name': 'diretor',
+            'message': 'Selecione o(a) diretor(a) do filme:',
+            'choices': ['Diretor 1', 'Diretor 2', 'Diretor 3'],
+            'validate': lambda answers: len(answers['people']) > 0
+        },
+        {
+            'type': 'checkbox',
+            'name': 'actors',
+            'message': 'Selecione os(as) atores(izes) do filme:',
+            'choices': ['Ator 1', 'Ator 2', 'Ator 3'],
+            'validate': lambda answers: len(answers['people']) > 0
         }
+
     ]
 
     ADD_SESSION = [
@@ -246,6 +265,8 @@ class UserInterface():
     
     def add_movie_menu(self, connection: sql.Connection) -> int:
         estudio_id = 0
+
+        # Lista todos os estúdios
         Question.ADD_MOVIE.value[3]['choices'] = list(
             map(
                 lambda x: {
@@ -257,6 +278,38 @@ class UserInterface():
             )
         )
         Question.ADD_MOVIE.value[3]['choices'].append({'name': 'Adicionar Novo Estúdio', 'value': 'Adicionar Novo Estúdio', 'short': 'Adicionar Novo Estúdio'})
+
+        # Lista todos os diretores
+        funcao_list = Funcao.procurar_funcao(connection, "Diretor")
+        diretor = None if len(funcao_list) == 0 else funcao_list[0]
+        funcao_diretor_id = diretor.id_funcao if diretor is not None else 0
+        Question.ADD_MOVIE.value[5]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x['name'],
+                    'value': x['value'],
+                    'short': x['name']
+                }, 
+                FuncionarioFilme.listar_todos_nomes(connection, funcao_diretor_id)
+            )
+        )
+        Question.ADD_MOVIE.value[5]['choices'].append({'name': 'Adicionar Novo Diretor', 'value': 'Adicionar Novo Diretor', 'short': 'Adicionar Novo Diretor'})
+
+        #Lista todos os atores
+        funcao_list = Funcao.procurar_funcao(connection, "Ator")
+        actor = None if len(funcao_list) == 0 else funcao_list[0]
+        actor_function_id = actor.id_funcao if actor is not None else 0
+        Question.ADD_MOVIE.value[6]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x['name'],
+                    'value': x['value'],
+                    'short': x['name']
+                }, 
+                FuncionarioFilme.listar_todos_nomes(connection, actor_function_id)
+            )
+        )
+        Question.ADD_MOVIE.value[6]['choices'].append({'name': 'Adicionar Novo Ator', 'value': 'Adicionar Novo Ator', 'short': 'Adicionar Novo Ator'})
 
         answares = prompt(Question.ADD_MOVIE.value)
         
@@ -276,6 +329,26 @@ class UserInterface():
         filme.inserir_filme(connection)
 
         id_filme = filme.get_id_filme(connection)
+
+        for diretor in answares['diretor']:
+            person_id = 0
+            if diretor == 'Adicionar Novo Diretor':
+                person_id = self.add_people_menu(connection)
+            else:
+                person_id = int(diretor)
+
+            film_function = FuncionarioFilme(id_filme, person_id, funcao_diretor_id)
+            film_function.inserir_funcionario_filme(connection)
+
+        for actor in answares['actor']:
+            person_id = 0
+            if actor == 'Adicionar Novo Ator':
+                person_id = self.add_people_menu(connection)
+            else:
+                person_id = int(actor)
+
+            film_function = FuncionarioFilme(id_filme, person_id, actor_function_id)
+            film_function.inserir_funcionario_filme(connection)
 
         # print("Filme {} foi inserido com ID={}!".format(filme.titulo, id_filme))
 
@@ -437,8 +510,14 @@ class UserInterface():
     
     def list_sessions(self):
         pass
-        
+
 if __name__ == "__main__":
     connection = sql.connect("database/filmes.db")
+
+    args = parser.parse_args()
+
+    if args.create_tables:
+        criar_tabelas(connection)
+        popular_tabelas(connection)
 
     UserInterface().start(connection)
