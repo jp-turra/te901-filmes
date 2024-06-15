@@ -230,23 +230,30 @@ class Genero:
             cursor.close()
 
     @staticmethod
-    def procurar_genero(connection: sql.Connection, nome: str, id_genero: int = 0):
+    def procurar_genero(connection: sql.Connection, nome: str = "", id_genero: int = 0):
         generos: List[Genero] = []
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM genero WHERE id_genero = ? OR nome LIKE ?", (id_genero, nome))
+            if id_genero != 0:
+                cursor.execute("SELECT * FROM genero WHERE id_genero = ?", (id_genero,))
+            elif nome != "":
+                cursor.execute("SELECT * FROM genero WHERE nome LIKE ?", (id_genero, nome))
+            else:
+                cursor.execute("SELECT * FROM genero ORDER BY nome")
+
             rows = cursor.fetchall()
 
             generos = list(map(
                 lambda x: Genero(x[1], x[0]),
                 rows
             ))
+            return generos
 
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
+            return []
         finally:
             cursor.close()
-            return generos
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
@@ -282,6 +289,7 @@ class GeneroFilme:
             connection.commit()
         except sql.Error as e:
             print(f"Erro ao inserir genero_filme: {e}")
+            return
         finally:
             cursor.close()
 

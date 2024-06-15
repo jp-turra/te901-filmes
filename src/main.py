@@ -146,8 +146,14 @@ class Question(Enum):
             'message': 'Selecione os(as) atores(izes) do filme:',
             'choices': ['Ator 1', 'Ator 2', 'Ator 3'],
             'validate': lambda answers: len(answers['people']) > 0
+        },
+        {
+            'type': 'checkbox',
+            'name': 'genres',
+            'message': 'Selecione os generos do filme:',
+            'choices': ['Genero 1', 'Genero 2', 'Genero 3'],
+            'validate': lambda answers: len(answers['people']) > 0
         }
-
     ]
 
     ADD_SESSION = [
@@ -234,6 +240,24 @@ class Question(Enum):
         }
     ]
 
+    ADD_GENRE = [
+        {
+            'type': 'input',
+            'name': 'name',
+            'message': 'Insira o Nome do Genero:',
+            'validate': TextValidator
+        }
+    ]
+
+    ADD_EXTRA_GENRE = [
+        {
+            'type': 'list',
+            'name': 'add_extra_genre',
+            'message': 'Deseja adicionar mais um genero?',
+            'choices': ['Sim', 'Nao']
+        }
+    ]
+
     LIST_SESSIONS_RESULT = [
         {
             'type': 'list',
@@ -273,7 +297,23 @@ class UserInterface():
                 print("Interrupção do usuário!")
                 break
 
-    
+    def add_genre_menu(self, connection: sql.Connection) -> int:
+        genre_id = 0
+
+        answares = prompt(Question.ADD_GENRE.value)
+
+        genero = Genero(answares['name'])
+        try:
+            genero.inserir_genero(connection)
+            genre_id = genero.get_id_genero(connection)
+
+            return genre_id
+        except sql.Error as e:
+            print(f"Erro ao inserir genero: {e}")
+            return 0
+
+
+
     def add_movie_menu(self, connection: sql.Connection) -> int:
         estudio_id = 0
 
@@ -321,6 +361,19 @@ class UserInterface():
             )
         )
         Question.ADD_MOVIE.value[6]['choices'].append({'name': 'Adicionar Novo Ator', 'value': 'Adicionar Novo Ator', 'short': 'Adicionar Novo Ator'})
+
+        # Lista todos os generos
+        Question.ADD_MOVIE.value[7]['choices'] = list(
+            map(
+                lambda x: {
+                    'name': x.nome,
+                    'value': x.id_genero,
+                    'short': x.nome
+                }, 
+                Genero.procurar_genero(connection)
+            )
+        )
+        Question.ADD_MOVIE.value[7]['choices'].append({'name': 'Adicionar Novo Genero', 'value': 'Adicionar Novo Genero', 'short': 'Adicionar Novo Genero'})
 
         answares = prompt(Question.ADD_MOVIE.value)
         
@@ -385,7 +438,27 @@ class UserInterface():
                 film_function = FuncionarioFilme(person_id, id_filme, actor_function_id)
                 film_function.inserir_funcionario_filme(connection)
 
-        # print("Filme {} foi inserido com ID={}!".format(filme.titulo, id_filme))
+        for genre in answares['genres']:
+            if genre == 'Adicionar Novo Genero':
+                genre_id = self.add_genre_menu(connection)
+                if genre_id != 0:
+                    film_genre = GeneroFilme(id_filme, genre_id)
+                    film_genre.inserir_genero_filme(connection)
+                
+
+                # Mostra menu para adicionar generos extras
+                new_genre_answares = prompt(Question.ADD_EXTRA_GENRE.value)
+                while new_genre_answares['add_extra_genre'] == "Sim":
+                    extra_genre_id = self.add_genre_menu(connection)
+                    if extra_genre_id != 0:
+                        film_genre = GeneroFilme(id_filme, extra_genre_id)
+                        film_genre.inserir_genero_filme(connection)
+                    
+                    new_genre_answares = prompt(Question.ADD_EXTRA_GENRE.value)
+            else:
+                genre_id = int(genre)
+                film_genre = GeneroFilme(id_filme, genre_id)
+                film_genre.inserir_genero_filme(connection)
 
         return id_filme
 
