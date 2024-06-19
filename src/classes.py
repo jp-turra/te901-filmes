@@ -159,7 +159,8 @@ class Filme:
         finally:
             cursor.close()
             return filmes
-
+    
+    @staticmethod
     def listar_todos_filmes(connection: sql.Connection):
         try:
             cursor = connection.cursor()
@@ -172,6 +173,54 @@ class Filme:
             ))
 
             return filmes
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def listar_filmes_completo(connection: sql.Connection):
+        query = """
+            SELECT
+                Filme.id_filme,
+                Filme.titulo,
+                Filme.comentario,
+                Filme.nota,
+                Estudio.nome AS nome_estudio,
+                GROUP_CONCAT(DISTINCT Genero.nome) AS generos,
+                GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios
+            FROM
+                Filme
+            LEFT JOIN Estudio ON Filme.id_estudio = Estudio.id_estudio
+            LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
+            LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
+            LEFT JOIN FuncionarioFilme ON Filme.id_filme = FuncionarioFilme.id_filme
+            LEFT JOIN Pessoa ON FuncionarioFilme.id_pessoa = Pessoa.id_pessoa
+            LEFT JOIN Funcao ON FuncionarioFilme.id_funcao = Funcao.id_funcao
+            GROUP BY
+                Filme.id_filme, Estudio.nome;
+        """
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            
+
+            # Formatando o output
+            filmes = list(map(lambda x: {
+                'ID Filme': x[0],
+                'Título': x[1],
+                'Comentário': x[2],
+                'Nota': x[3],
+                'Estúdio': x[4],
+                'Gêneros': x[5],
+                'Funcionários': x[6]
+            }, rows))
+            
+            return filmes
+        
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
             return []

@@ -615,58 +615,21 @@ class UserInterface():
 
     
     def list_movies(self, connection: sql.Connection):
-            query = """
-            SELECT
-                Filme.id_filme,
-                Filme.titulo,
-                Filme.comentario,
-                Filme.nota,
-                Estudio.nome AS nome_estudio,
-                GROUP_CONCAT(DISTINCT Genero.nome) AS generos,
-                GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios
-            FROM
-                Filme
-            LEFT JOIN Estudio ON Filme.id_estudio = Estudio.id_estudio
-            LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
-            LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
-            LEFT JOIN FuncionarioFilme ON Filme.id_filme = FuncionarioFilme.id_filme
-            LEFT JOIN Pessoa ON FuncionarioFilme.id_pessoa = Pessoa.id_pessoa
-            LEFT JOIN Funcao ON FuncionarioFilme.id_funcao = Funcao.id_funcao
-            GROUP BY
-                Filme.id_filme, Estudio.nome;
-            """
-            
-            try:
-                cursor = connection.cursor()
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                cursor.close()
+            filmes = Filme.listar_filmes_completo(connection)
 
-                # Formatando o output
-                filmes = list(map(lambda x: {
-                    'ID Filme': x[0],
-                    'Título': x[1],
-                    'Comentário': x[2],
-                    'Nota': x[3],
-                    'Estúdio': x[4],
-                    'Gêneros': x[5],
-                    'Funcionários': x[6]
-                }, rows))
-                
-                # Exibindo os resultados formatados
-                for filme in filmes:
-                    print(f"\nID Filme: {filme['ID Filme']}")
-                    print(f"Título: {filme['Título']}")
-                    print(f"Comentário: {filme['Comentário']}")
-                    print(f"Nota: {filme['Nota']}")
-                    print(f"Estúdio: {filme['Estúdio']}")
-                    print(f"Gêneros: {filme['Gêneros']}")
-                    print(f"Funcionários: {filme['Funcionários']}")
-                    print()
-                    print("-" * 40)
-            except sql.Error as e:
-                print(f"Erro ao executar a consulta: {e}")
-                pass
+            # Exibindo os resultados formatados
+            for filme in filmes:
+                print(f"\nID Filme: {filme['ID Filme']}")
+                print(f"Título: {filme['Título']}")
+                print(f"Comentário: {filme['Comentário']}")
+                print(f"Nota: {filme['Nota']}")
+                print(f"Estúdio: {filme['Estúdio']}")
+                print(f"Gêneros: {filme['Gêneros']}")
+                print(f"Funcionários: {filme['Funcionários']}")
+                print()
+                print("-" * 40)
+
+            input("Pressione qualquer tecla para voltar")
     
     def list_sessions(self, connection):
         query = """
@@ -710,8 +673,9 @@ class UserInterface():
             
             # Exibindo os resultados formatados
             for sessao in sessoes:
+                data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
                 print("\nID Sessão: {}".format(sessao['ID Sessão']))
-                print("Data Visto: {}".format(sessao['Data Visto']))
+                print("Data Visto: {}".format(Sessao.struct_time_to_str_date(data)))
                 print("Comentário: {}".format(sessao['Comentário']))
                 print("Título do Filme: {}".format(sessao['Título do Filme']))
                 print("Local: {}".format(sessao['Local']))
@@ -719,6 +683,8 @@ class UserInterface():
                 print("Gêneros: {}".format(sessao['Gêneros']))
                 print()  # Linha em branco entre o conteúdo e a linha de separação
                 print("-" * 40)
+
+            input("Pressione qualquer tecla para voltar")
 
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")
