@@ -594,8 +594,7 @@ class UserInterface():
         pass
     
     def list_sessions_by_date(self, connection):
-        # (TURRA) 6. Listar sessões (ordenar por data descendente) (data + nome_filme)
-        sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme", "data_visto ASC", do_inner_join=True)
+        sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme", "data_visto DESC", do_inner_join=True)
 
         Question.LIST_SESSIONS_RESULT.value[0]['choices'] = list(
             map(

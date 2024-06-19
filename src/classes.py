@@ -787,6 +787,7 @@ class Sessao:
         finally:
             cursor.close()
 
+    @staticmethod
     def listar_sessoes(connection: sql.Connection, columns: str, order_by: str = "", limit: str = "", do_inner_join: bool = False):
         sessoes: List[Sessao] = []
         filme: Filme
