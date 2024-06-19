@@ -606,11 +606,12 @@ class UserInterface():
                 sessoes
             )
         )
-        Question.LIST_SESSIONS_RESULT.value[0]['choices'].append({'name': 'Voltar', 'value': -1, 'short': 'Voltar'})
+        Question.LIST_SESSIONS_RESULT.value[0]['choices'].append({'name': 'Voltar', 'value': 0, 'short': 'Voltar'})
         
         # input("Pressione ENTER para voltar")
 
-        prompt(Question.LIST_SESSIONS_RESULT.value)
+        resposta = prompt(Question.LIST_SESSIONS_RESULT.value)
+        return  resposta["value"]
 
     
     def list_movies(self, connection: sql.Connection):
@@ -631,62 +632,24 @@ class UserInterface():
             input("Pressione qualquer tecla para voltar")
     
     def list_sessions(self, connection):
-        query = """
-        SELECT
-            Sessao.id_sessao,
-            Sessao.data_visto,
-            Sessao.comentario,
-            Filme.titulo,
-            Local.nome AS nome_local,
-            GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios,
-            GROUP_CONCAT(DISTINCT Genero.nome) AS generos
-        FROM
-            Sessao
-        LEFT JOIN Filme ON Sessao.id_filme = Filme.id_filme
-        LEFT JOIN Local ON Sessao.id_local = Local.id_local
-        LEFT JOIN FuncionarioFilme ON Filme.id_filme = FuncionarioFilme.id_filme
-        LEFT JOIN Pessoa ON FuncionarioFilme.id_pessoa = Pessoa.id_pessoa
-        LEFT JOIN Funcao ON FuncionarioFilme.id_funcao = Funcao.id_funcao
-        LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
-        LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
-        GROUP BY
-            Sessao.id_sessao;
-        """
-        
-        try:
-            cursor = connection.cursor()
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            cursor.close()
+        id_sessao = self.list_sessions_by_date(connection)
 
-            # Formatando o output
-            sessoes = list(map(lambda x: {
-                'ID Sessão': x[0],
-                'Data Visto': x[1],
-                'Comentário': x[2],
-                'Título do Filme': x[3],
-                'Local': x[4],
-                'Funcionários': x[5],
-                'Gêneros': x[6]
-            }, rows))
+        sessoes = Sessao.listar_sessao_completo(connection, id_sessao)
             
             # Exibindo os resultados formatados
-            for sessao in sessoes:
-                data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
-                print("\nID Sessão: {}".format(sessao['ID Sessão']))
-                print("Data Visto: {}".format(Sessao.struct_time_to_str_date(data)))
-                print("Comentário: {}".format(sessao['Comentário']))
-                print("Título do Filme: {}".format(sessao['Título do Filme']))
-                print("Local: {}".format(sessao['Local']))
-                print("Funcionários: {}".format(sessao['Funcionários']))
-                print("Gêneros: {}".format(sessao['Gêneros']))
-                print()  # Linha em branco entre o conteúdo e a linha de separação
-                print("-" * 40)
+        for sessao in sessoes:
+            data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
+            print("\nID Sessão: {}".format(sessao['ID Sessão']))
+            print("Data Visto: {}".format(Sessao.struct_time_to_str_date(data)))
+            print("Comentário: {}".format(sessao['Comentário']))
+            print("Título do Filme: {}".format(sessao['Título do Filme']))
+            print("Local: {}".format(sessao['Local']))
+            print("Funcionários: {}".format(sessao['Funcionários']))
+            print("Gêneros: {}".format(sessao['Gêneros']))
+            print()  # Linha em branco entre o conteúdo e a linha de separação
+            print("-" * 40)
 
-            input("Pressione qualquer tecla para voltar")
-
-        except sql.Error as e:
-            print(f"Erro ao executar a consulta: {e}")
+        input("Pressione qualquer tecla para voltar")
 
 
 if __name__ == "__main__":

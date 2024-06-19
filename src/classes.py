@@ -227,6 +227,8 @@ class Filme:
         finally:
             cursor.close()
 
+
+
     @staticmethod
     def print_tabela(connection: sql.Connection):
         try:
@@ -844,6 +846,57 @@ class Sessao:
             return sessoes
         except sql.Error as e:
             print(f"[listar_sessoes] Erro ao executar a consulta Sessão: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def listar_sessao_completo(connection: sql.Connection, id_sessao: int=0):
+        id_sessao = 0
+        id_sessao_query = ""
+
+        query = f"""
+        SELECT
+            Sessao.id_sessao,
+            Sessao.data_visto,
+            Sessao.comentario,
+            Filme.titulo,
+            Local.nome AS nome_local,
+            GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios,
+            GROUP_CONCAT(DISTINCT Genero.nome) AS generos
+        FROM
+            Sessao
+        LEFT JOIN Filme ON Sessao.id_filme = Filme.id_filme
+        LEFT JOIN Local ON Sessao.id_local = Local.id_local
+        LEFT JOIN FuncionarioFilme ON Filme.id_filme = FuncionarioFilme.id_filme
+        LEFT JOIN Pessoa ON FuncionarioFilme.id_pessoa = Pessoa.id_pessoa
+        LEFT JOIN Funcao ON FuncionarioFilme.id_funcao = Funcao.id_funcao
+        LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
+        LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
+        GROUP BY
+            Sessao.id_sessao;
+        """
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            # Formatando o output
+            sessoes = list(map(lambda x: {
+                'ID Sessão': x[0],
+                'Data Visto': x[1],
+                'Comentário': x[2],
+                'Título do Filme': x[3],
+                'Local': x[4],
+                'Funcionários': x[5],
+                'Gêneros': x[6]
+            }, rows))
+
+            return  sessoes
+
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
             return []
         finally:
             cursor.close()
