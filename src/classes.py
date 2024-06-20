@@ -188,8 +188,8 @@ class Filme:
                 Filme.comentario,
                 Filme.nota,
                 Estudio.nome AS nome_estudio,
-                GROUP_CONCAT(DISTINCT Genero.nome) AS generos,
-                GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios
+                GROUP_CONCAT(DISTINCT ' ' || Genero.nome || ' ') AS generos,
+                GROUP_CONCAT(DISTINCT ' ' || Pessoa.nome || ' (' || Funcao.nome || ') ') AS funcionarios
             FROM
                 Filme
             LEFT JOIN Estudio ON Filme.id_estudio = Estudio.id_estudio
@@ -216,7 +216,7 @@ class Filme:
                 'Nota': x[3],
                 'Estúdio': x[4],
                 'Gêneros': x[5],
-                'Funcionários': x[6]
+                'Funcionários': x[6] 
             }, rows))
             
             return filmes
@@ -855,6 +855,9 @@ class Sessao:
         id_sessao = 0
         id_sessao_query = ""
 
+        if  id_sessao > 0:
+            id_sessao_query = f"AND Sessao.id_sessao = {id_sessao}"
+
         query = f"""
         SELECT
             Sessao.id_sessao,
@@ -862,15 +865,14 @@ class Sessao:
             Sessao.comentario,
             Filme.titulo,
             Local.nome AS nome_local,
-            GROUP_CONCAT(DISTINCT Pessoa.nome || ' (' || Funcao.nome || ')') AS funcionarios,
-            GROUP_CONCAT(DISTINCT Genero.nome) AS generos
+            GROUP_CONCAT(DISTINCT ' ' || Pessoa.nome || ' ') AS pessoas,
+            GROUP_CONCAT(DISTINCT ' ' || Genero.nome) AS generos
         FROM
             Sessao
-        LEFT JOIN Filme ON Sessao.id_filme = Filme.id_filme
+        LEFT JOIN Filme ON Sessao.id_filme = Filme.id_filme {id_sessao_query}
         LEFT JOIN Local ON Sessao.id_local = Local.id_local
-        LEFT JOIN FuncionarioFilme ON Filme.id_filme = FuncionarioFilme.id_filme
-        LEFT JOIN Pessoa ON FuncionarioFilme.id_pessoa = Pessoa.id_pessoa
-        LEFT JOIN Funcao ON FuncionarioFilme.id_funcao = Funcao.id_funcao
+        LEFT JOIN SessaoPessoa ON Sessao.id_sessao = SessaoPessoa.id_sessao
+        LEFT JOIN Pessoa ON SessaoPessoa.id_pessoa = Pessoa.id_pessoa
         LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
         LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
         GROUP BY
@@ -889,7 +891,7 @@ class Sessao:
                 'Comentário': x[2],
                 'Título do Filme': x[3],
                 'Local': x[4],
-                'Funcionários': x[5],
+                'Pessoas': x[5],
                 'Gêneros': x[6]
             }, rows))
 
@@ -917,7 +919,10 @@ class Sessao:
             if id_sessao > 0:
                 cursor.execute(""" SELECT * FROM Sessao WHERE id_sessao = ?""", (id_sessao,))
             else:
-                data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%Y/%m/%d')
+                try:
+                    data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%Y/%m/%d')
+                except:
+                    data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%d/%m/%Y')
                 cursor.execute(""" SELECT * FROM Sessao WHERE data_visto = ? AND id_filme = ? AND id_local = ?""", (data_visto_str, id_filme, id_local))
 
             rows = cursor.fetchall()

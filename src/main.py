@@ -611,7 +611,7 @@ class UserInterface():
         # input("Pressione ENTER para voltar")
 
         resposta = prompt(Question.LIST_SESSIONS_RESULT.value)
-        return  resposta["value"]
+        return  resposta
 
     
     def list_movies(self, connection: sql.Connection):
@@ -619,9 +619,9 @@ class UserInterface():
 
             # Exibindo os resultados formatados
             for filme in filmes:
-                print(f"\nID Filme: {filme['ID Filme']}")
+                print(f"\nFilme: {filme['ID Filme']}")
                 print(f"Título: {filme['Título']}")
-                print(f"Comentário: {filme['Comentário']}")
+                print(f"Comentário do filme: {filme['Comentário']}")
                 print(f"Nota: {filme['Nota']}")
                 print(f"Estúdio: {filme['Estúdio']}")
                 print(f"Gêneros: {filme['Gêneros']}")
@@ -639,12 +639,12 @@ class UserInterface():
             # Exibindo os resultados formatados
         for sessao in sessoes:
             data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
-            print("\nID Sessão: {}".format(sessao['ID Sessão']))
+            print("\nSessão: {}".format(sessao['ID Sessão']))
             print("Data Visto: {}".format(Sessao.struct_time_to_str_date(data)))
-            print("Comentário: {}".format(sessao['Comentário']))
+            print("Comentário da sessão: {}".format(sessao['Comentário']))
             print("Título do Filme: {}".format(sessao['Título do Filme']))
             print("Local: {}".format(sessao['Local']))
-            print("Funcionários: {}".format(sessao['Funcionários']))
+            print("Pessoas: {}".format(sessao['Pessoas']))
             print("Gêneros: {}".format(sessao['Gêneros']))
             print()  # Linha em branco entre o conteúdo e a linha de separação
             print("-" * 40)
