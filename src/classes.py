@@ -802,6 +802,7 @@ class Sessao:
             comentario_pos = -1
             id_filme_pos = -1
             id_local_pos = -1
+            id_sessao_pos = -1
 
             query = f"SELECT {columns} FROM Sessao"
 
@@ -817,6 +818,8 @@ class Sessao:
                         query += " INNER JOIN Filme USING (id_filme)"
                 elif split_columns[i].replace(" ", "") == "id_local":
                     id_local_pos = i
+                elif split_columns[i].replace(" ", "") == "id_sessao":
+                    id_sessao_pos = i
 
             if order_by != "":
                 query += f" ORDER BY {order_by}"
@@ -832,7 +835,8 @@ class Sessao:
                     x[data_pos] if data_pos >= 0 else "", 
                     x[comentario_pos] if comentario_pos >= 0 else "", 
                     x[id_filme_pos] if id_filme_pos >= 0 else 0, 
-                    x[id_local_pos] if id_local_pos >= 0 else 0
+                    x[id_local_pos] if id_local_pos >= 0 else 0,
+                    x[id_sessao_pos] if id_sessao_pos >= 0 else 0
                 ), rows
             ))
 
@@ -851,30 +855,31 @@ class Sessao:
             cursor.close()
 
     @staticmethod
-    def listar_sessao_completo(connection: sql.Connection, id_sessao: int=0):
-        id_sessao = 0
+    def listar_sessao_completo(connection: sql.Connection, id_sessao: int = 0):
         id_sessao_query = ""
-
-        if  id_sessao > 0:
+        if id_sessao > 0:
             id_sessao_query = f"AND Sessao.id_sessao = {id_sessao}"
 
         query = f"""
         SELECT
             Sessao.id_sessao,
             Sessao.data_visto,
-            Sessao.comentario,
+            Sessao.comentario AS comentario_sessao,
             Filme.titulo,
+            Filme.comentario AS comentario_filme,
+            Filme.nota,
+            GROUP_CONCAT(DISTINCT ' ' || Genero.nome) AS generos,
             Local.nome AS nome_local,
-            GROUP_CONCAT(DISTINCT ' ' || Pessoa.nome || ' ') AS pessoas,
-            GROUP_CONCAT(DISTINCT ' ' || Genero.nome) AS generos
+            Local.comentario AS comentario_local,
+            GROUP_CONCAT(DISTINCT ' ' || Pessoa.nome || ' ') AS pessoas
         FROM
             Sessao
-        LEFT JOIN Filme ON Sessao.id_filme = Filme.id_filme {id_sessao_query}
-        LEFT JOIN Local ON Sessao.id_local = Local.id_local
-        LEFT JOIN SessaoPessoa ON Sessao.id_sessao = SessaoPessoa.id_sessao
-        LEFT JOIN Pessoa ON SessaoPessoa.id_pessoa = Pessoa.id_pessoa
-        LEFT JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
-        LEFT JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
+        INNER JOIN Filme ON Sessao.id_filme = Filme.id_filme {id_sessao_query}
+        INNER JOIN Local ON Sessao.id_local = Local.id_local
+        INNER JOIN SessaoPessoa ON (Sessao.id_sessao = SessaoPessoa.id_sessao)
+        INNER JOIN Pessoa ON SessaoPessoa.id_pessoa = Pessoa.id_pessoa
+        INNER JOIN GeneroFilme ON Filme.id_filme = GeneroFilme.id_filme
+        INNER JOIN Genero ON GeneroFilme.id_genero = Genero.id_genero
         GROUP BY
             Sessao.id_sessao;
         """
@@ -888,14 +893,17 @@ class Sessao:
             sessoes = list(map(lambda x: {
                 'ID Sessão': x[0],
                 'Data Visto': x[1],
-                'Comentário': x[2],
+                'Comentario': x[2],
                 'Título do Filme': x[3],
-                'Local': x[4],
-                'Pessoas': x[5],
-                'Gêneros': x[6]
+                'Comentario Filme': x[4],
+                'Nota Filme': x[5],
+                'Gêneros': x[6],
+                'Local': x[7],
+                'Comentario Local': x[8],
+                'Pessoas': x[9],
             }, rows))
 
-            return  sessoes
+            return sessoes
 
         except sql.Error as e:
             print(f"Erro ao executar a consulta: {e}")

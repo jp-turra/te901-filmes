@@ -21,7 +21,7 @@ class Menu(Enum):
     LISTAR_FILMES_TITULO=4
     LISTAR_SESSOES=6
     CONSULTAR_TODOS_FILMES=5
-    CONSULTAR_TODAS_SESSOES=7
+    CONSULTAR_SESSAO=7
 
     def get_main_choices():
         items = []
@@ -298,7 +298,7 @@ class UserInterface():
                     self.list_sessions_by_date(connection)
                 elif answare['menu'] == str(Menu.CONSULTAR_TODOS_FILMES.value):
                     self.list_movies(connection)
-                elif answare['menu'] == str(Menu.CONSULTAR_TODAS_SESSOES.value):
+                elif answare['menu'] == str(Menu.CONSULTAR_SESSAO.value):
                     self.list_sessions(connection)
             except KeyboardInterrupt:
                 print("Interrupção do usuário!")
@@ -600,7 +600,7 @@ class UserInterface():
         pass
     
     def list_sessions_by_date(self, connection):
-        sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme", "data_visto DESC", do_inner_join=True)
+        sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme, id_sessao", "data_visto DESC", do_inner_join=True)
 
         Question.LIST_SESSIONS_RESULT.value[0]['choices'] = list(
             map(
@@ -614,10 +614,9 @@ class UserInterface():
         )
         Question.LIST_SESSIONS_RESULT.value[0]['choices'].append({'name': 'Voltar', 'value': 0, 'short': 'Voltar'})
         
-        # input("Pressione ENTER para voltar")
-
         resposta = prompt(Question.LIST_SESSIONS_RESULT.value)
-        return  resposta
+
+        return int(resposta['session'])
 
     
     def list_movies(self, connection: sql.Connection):
@@ -639,19 +638,38 @@ class UserInterface():
     
     def list_sessions(self, connection):
         id_sessao = self.list_sessions_by_date(connection)
+        
+        if 0 == id_sessao:
+            return
 
         sessoes = Sessao.listar_sessao_completo(connection, id_sessao)
+
+        # sessoes = list(map(lambda x: {
+        #     'ID Sessão': x[0],
+        #     'Data Visto': x[1],
+        #     'Comentario': x[2],
+        #     'Título do Filme': x[3],
+        #     'Comentario Filme': x[4],
+        #     'Nota Filme': x[5],
+        #     'Gêneros': x[6],
+        #     'Local': x[7],
+        #     'Comentario Local': x[8],
+        #     'Pessoas': x[9],
+        # }, rows))
             
-            # Exibindo os resultados formatados
+        # Exibindo os resultados formatados
         for sessao in sessoes:
             data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
             print("\nSessão: {}".format(sessao['ID Sessão']))
             print("Data Visto: {}".format(Sessao.struct_time_to_str_date(data)))
-            print("Comentário da sessão: {}".format(sessao['Comentário']))
+            print("Comentário da sessão: {}".format(sessao['Comentario']))
             print("Título do Filme: {}".format(sessao['Título do Filme']))
-            print("Local: {}".format(sessao['Local']))
-            print("Pessoas: {}".format(sessao['Pessoas']))
+            print("Comentário do filme: {}".format(sessao['Comentario Filme']))
+            print("Nota do filme: {}".format(sessao['Nota Filme']))
             print("Gêneros: {}".format(sessao['Gêneros']))
+            print("Local: {}".format(sessao['Local']))
+            print("Comentário do local: {}".format(sessao['Comentario Local']))
+            print("Pessoas: {}".format(sessao['Pessoas']))
             print()  # Linha em branco entre o conteúdo e a linha de separação
             print("-" * 40)
 
