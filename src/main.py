@@ -81,16 +81,23 @@ class DateValidator(Validator):
                 raise ValueError
             
             # Primeiro filme criado foi em 1895
-            year = time.ctime().split()[4]
-            if int(res_group[2]) < 1895 or int(res_group[2]) > int(year):
+            if int(res_group[2]) < 1895:
                 raise ValueError
             
+            struct_data = time.strptime(date, "%d/%m/%Y")
+            if time.strftime("%Y/%m/%d", struct_data) > time.strftime("%Y/%m/%d", time.localtime()):
+                raise ValidationError(
+                    message="Data inválida. A data deve ser menor que a data atual.",
+                    cursor_position=len(document.text)
+                )
+            
             return True
-        except ValueError:
+        except ValueError as error:
             raise ValidationError(
                 message="Data inválida. dd/mm/aaaa. Verifique se o dia, mês e ano sao validos.",
                 cursor_position=len(document.text)
             )
+                
 
 class Question(Enum):
 
@@ -559,7 +566,6 @@ class UserInterface():
         
         # Cria a nova sessão
         sessao = Sessao(answares['date'], answares['comment'], id_filme, id_local)
-        sessao.data_visto = Sessao.struct_time_to_str_date(sessao.data_visto, '%Y/%m/%d')
         sessao.inserir_sessao(connection)
 
         # print("Sessão {} foi inserida com ID={}!".format(sessao.data_visto, sessao.get_id_sessao(connection)))

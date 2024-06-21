@@ -257,12 +257,12 @@ class Genero:
 
     def get_id_genero(self, connection: sql.Connection):
         if self.id_genero == 0:
-            genero = self.procurar_genero(connection, self.nome)
+            genero = self.procurar_genero(connection, nome=self.nome)
             if len(genero) > 0:
                 self.id_genero = genero[0].id_genero
             else:
                 print(f"Genero '{self.nome}' não existe!")
-                return None
+                return 0
     
         return self.id_genero
 
@@ -272,7 +272,7 @@ class Genero:
             generos = self.procurar_genero(connection, self.nome)
             if len(generos) > 0:
                 raise sql.Error(f"Genero '{self.nome}' ja existe!")
-            cursor.execute("INSERT INTO genero (nome) VALUES (?)", (self.nome,))
+            cursor.execute("INSERT INTO genero (nome) VALUES (?)", (self.nome))
             connection.commit()
             print(f"Genero '{self.nome}' inserido com sucesso!")
         except sql.Error as e:
@@ -286,9 +286,9 @@ class Genero:
         try:
             cursor = connection.cursor()
             if id_genero != 0:
-                cursor.execute("SELECT * FROM genero WHERE id_genero = ?", (id_genero,))
+                cursor.execute("SELECT * FROM genero WHERE id_genero = ?", (id_genero))
             elif nome != "":
-                cursor.execute("SELECT * FROM genero WHERE nome LIKE ?", (id_genero, nome))
+                cursor.execute("SELECT * FROM genero WHERE nome LIKE ?", (nome))
             else:
                 cursor.execute("SELECT * FROM genero ORDER BY nome")
 
@@ -919,10 +919,7 @@ class Sessao:
             if id_sessao > 0:
                 cursor.execute(""" SELECT * FROM Sessao WHERE id_sessao = ?""", (id_sessao,))
             else:
-                try:
-                    data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%Y/%m/%d')
-                except:
-                    data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%d/%m/%Y')
+                data_visto_str = Sessao.struct_time_to_str_date(data_visto, '%Y/%m/%d')
                 cursor.execute(""" SELECT * FROM Sessao WHERE data_visto = ? AND id_filme = ? AND id_local = ?""", (data_visto_str, id_filme, id_local))
 
             rows = cursor.fetchall()
