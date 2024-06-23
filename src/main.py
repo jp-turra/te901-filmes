@@ -17,10 +17,10 @@ class Menu(Enum):
     SAIR=0
     CADASTRAR_FILME=1
     CADASTRAR_SESSAO=2
-    LISTAR_FILMES_NOTA=3
-    LISTAR_FILMES_TITULO=4
-    LISTAR_SESSOES=6
-    CONSULTAR_TODOS_FILMES=5
+    LISTAR_SESSOES=3
+    LISTAR_FILMES_NOTA=4
+    LISTAR_FILMES_TITULO=5
+    CONSULTAR_TODOS_FILMES=6
     CONSULTAR_SESSAO=7
 
     def get_main_choices():
@@ -558,10 +558,12 @@ class UserInterface():
 
         # Adiciona o novo filme caso a opção de adição de novo filme tenha sido escolhida
         if answares['movie'] == 'Adicionar Novo Filme':
+            print("Adicionar novo filme")
             id_filme = self.add_movie_menu(connection)
 
         # Adiciona o novo local caso a opção de adição de novo local tenha sido escolhida
         if answares['place'] == 'Adicionar Novo Local':
+            print("Adicionar novo local")
             id_local = self.add_place_menu(connection)
         
         # Cria a nova sessão
@@ -575,6 +577,7 @@ class UserInterface():
             
             # Adiciona nova pessoa caso a opção de adição de nova pessoa tenha sido escolhida
             if person == 'Adicionar Nova Pessoa':
+                print("Adicionar nova pessoa à sessão")
                 person_id = self.add_people_menu(connection)
                 sessao_pessoa = SessaoPessoa(person_id, sessao.get_id_sessao(connection))
                 sessao_pessoa.inserir_sessao_pessoa(connection)
@@ -582,6 +585,7 @@ class UserInterface():
                 # Mostra menu para adicionar pessoas extras
                 new_person_answares = prompt(Question.ADD_EXTRA_PERSON.value)
                 while new_person_answares['add_extra_person'] == "Sim":
+                    print("Adicionar nova pessoa à sessão")
                     extra_person_id = self.add_people_menu(connection)
                     sessao_pessoa = SessaoPessoa(extra_person_id, sessao.get_id_sessao(connection))
                     sessao_pessoa.inserir_sessao_pessoa(connection)
@@ -595,19 +599,18 @@ class UserInterface():
     
     def list_movies_by_grade(self, connection: sql.Connection):
         filmes = Filme.listar_filmes_ordenado(connection, "titulo, nota", "nota DESC")
+        print("Nota\t\tFilme")
         for filme in filmes:
-            print("Nota: {} - Filme: {}".format(filme.nota, filme.titulo))
+            print("{}\t\t{}".format(filme.nota, filme.titulo))
         
         input("Pressione qualquer tecla para continuar...")
-        
     
     def list_movies_by_title(self, connection: sql.Connection):
         filmes = Filme.listar_filmes_ordenado(connection, "titulo, nota", "titulo ASC")
         print("Nota\t\tFilme")
         for filme in filmes:
-            print("Nota: {} - Filme: {}".format(filme.nota, filme.titulo))
+            print("{}\t\t{}".format(filme.nota, filme.titulo))
         input("Pressione qualquer tecla para continuar...")
-        
     
     def list_sessions_by_date(self, connection):
         sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme, id_sessao", "data_visto DESC", do_inner_join=True)

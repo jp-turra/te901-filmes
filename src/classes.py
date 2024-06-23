@@ -37,7 +37,7 @@ class Estudio:
 
             cursor.execute("INSERT INTO estudio (nome) VALUES (?)", (self.nome,))
             connection.commit()
-            print(f"Estudio '{self.nome}' inserido com sucesso!")
+            # print(f"Estudio '{self.nome}' inserido com sucesso!")
         except sql.Error as e:
             print(f"Erro ao inserir estudio: {e}")
         finally:
@@ -135,7 +135,7 @@ class Filme:
 
             cursor.execute("INSERT INTO filme (titulo, comentario, nota, id_estudio) VALUES (?, ?, ?, ?)", (self.titulo, self.comentario, self.nota, self.id_estudio))
             connection.commit()
-            print(f"Filme '{self.titulo}' inserido com sucesso!")
+            # print(f"Filme '{self.titulo}' inserido com sucesso!")
         except sql.Error as e:
             print(f"Erro ao inserir filme: {e}")
         finally:
@@ -325,7 +325,7 @@ class Genero:
                 raise sql.Error(f"Genero '{self.nome}' ja existe!")
             cursor.execute("INSERT INTO genero (nome) VALUES (?)", (self.nome))
             connection.commit()
-            print(f"Genero '{self.nome}' inserido com sucesso!")
+            # print(f"Genero '{self.nome}' inserido com sucesso!")
         except sql.Error as e:
             print(f"Erro ao inserir genero: {e}")
         finally:
@@ -462,7 +462,7 @@ class Pessoa:
             
             cursor.execute("INSERT INTO Pessoa (nome, sexo) VALUES (?, ?)", (self.nome, self.sexo))
             connection.commit()
-            print(f"Pessoa '{self.nome}' inserida com sucesso!")
+            # print(f"Pessoa '{self.nome}' inserida com sucesso!")
         except sql.Error as e:
             print(f"[inseririr_pessoa] Erro ao inserir pessoa: {e}")
         finally:
@@ -834,7 +834,7 @@ class Sessao:
             data_visto_str = Sessao.struct_time_to_str_date(self.data_visto, '%Y/%m/%d')
             cursor.execute("INSERT INTO Sessao (data_visto, comentario, id_filme, id_local) VALUES (?, ?, ?, ?)", (data_visto_str, self.comentario, self.id_filme, self.id_local))
             connection.commit()
-            print(f"Sessão data '{self.struct_time_to_str_date(self.data_visto)}' id_filme '{self.id_filme}' id_local '{self.id_local}' inserida com sucesso")	
+            # print(f"Sessão data '{self.struct_time_to_str_date(self.data_visto)}' id_filme '{self.id_filme}' id_local '{self.id_local}' inserida com sucesso")	
         except sql.Error as e:
             print(f"[inserir_sessao] Erro ao inserir Sessão: {e}")
         finally:
@@ -1027,7 +1027,7 @@ class SessaoPessoa:
             
             cursor.execute("INSERT INTO SessaoPessoa (id_pessoa, id_sessao) VALUES (?, ?)", (self.id_pessoa, self.id_sessao))
             connection.commit()
-            print(f"SessãoPessoa id_pessoa='{self.id_pessoa}' id_sessao='{self.id_sessao}' inserida com sucesso!")
+            # print(f"SessãoPessoa id_pessoa='{self.id_pessoa}' id_sessao='{self.id_sessao}' inserida com sucesso!")
         except sql.Error as e:
             print(f"[inserir_sessao_pessoa] Erro ao inserir SessãoPessoa: {e}")
         finally:
