@@ -291,9 +291,9 @@ class UserInterface():
                 elif answare['menu'] == str(Menu.CADASTRAR_SESSAO.value):
                     self.add_session_menu(connection)
                 elif answare['menu'] == str(Menu.LISTAR_FILMES_NOTA.value):
-                    self.list_movies_by_grade()
+                    self.list_movies_by_grade(connection)
                 elif answare['menu'] == str(Menu.LISTAR_FILMES_TITULO.value):
-                    self.list_movies_by_title()
+                    self.list_movies_by_title(connection)
                 elif answare['menu'] == str(Menu.LISTAR_SESSOES.value):
                     self.list_sessions_by_date(connection)
                 elif answare['menu'] == str(Menu.CONSULTAR_TODOS_FILMES.value):
@@ -593,11 +593,21 @@ class UserInterface():
                 sessao_pessoa.inserir_sessao_pessoa(connection)
                 # print("Pessoa {} inserida na sessão {}!".format(sessao_pessoa.id_pessoa, sessao.id_sessao))
     
-    def list_movies_by_grade(self):
-        pass
+    def list_movies_by_grade(self, connection: sql.Connection):
+        filmes = Filme.listar_filmes_ordenado(connection, "titulo, nota", "nota DESC")
+        for filme in filmes:
+            print("Nota: {} - Filme: {}".format(filme.nota, filme.titulo))
+        
+        input("Pressione qualquer tecla para continuar...")
+        
     
-    def list_movies_by_title(self):
-        pass
+    def list_movies_by_title(self, connection: sql.Connection):
+        filmes = Filme.listar_filmes_ordenado(connection, "titulo, nota", "titulo ASC")
+        print("Nota\t\tFilme")
+        for filme in filmes:
+            print("Nota: {} - Filme: {}".format(filme.nota, filme.titulo))
+        input("Pressione qualquer tecla para continuar...")
+        
     
     def list_sessions_by_date(self, connection):
         sessoes = Sessao.listar_sessoes(connection, "data_visto, id_filme, id_sessao", "data_visto DESC", do_inner_join=True)

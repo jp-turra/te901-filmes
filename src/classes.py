@@ -102,7 +102,7 @@ class Filme:
     nota = 0
     id_estudio = 0
 
-    def __init__(self, titulo: str, comentario: str, nota: int, id_estudio: Estudio, id: int = 0) -> None:
+    def __init__(self, titulo: str, comentario: str, nota: int, id_estudio: int, id: int = 0) -> None:
         self.titulo = titulo
         self.comentario = comentario
         self.nota = nota
@@ -227,7 +227,58 @@ class Filme:
         finally:
             cursor.close()
 
+    @staticmethod
+    def listar_filmes_ordenado(connection: sql.Connection, column: str = "*", order: str = "id ASC"):
+        filmes: List[Filme] = []
+        id_filme_pos = -1
+        titulo_pos = -1
+        comentario_pos = -1
+        nota_pos = -1
+        id_estudio_pos = -1
+        try:
+            if column == "*":
+                id_filme_pos = 0
+                titulo_pos = 1
+                comentario_pos = 2
+                nota_pos = 3
+                id_estudio_pos = 4
+            else:
+                column_list = column.split(", ")
 
+                for i in range(len(column_list)):
+                    if column_list[i] == "id_filme":
+                        id_filme_pos = i
+                    elif column_list[i] == "titulo":
+                        titulo_pos = i
+                    elif column_list[i] == "comentario":
+                        comentario_pos = i
+                    elif column_list[i] == "nota":
+                        nota_pos = i
+                    elif column_list[i] == "id_estudio":
+                        id_estudio_pos = i
+                    
+
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT {column} FROM Filme ORDER BY {order}")
+            rows = cursor.fetchall()
+
+            for row in rows:
+                filmes.append(
+                    Filme(
+                        row[titulo_pos] if titulo_pos >= 0 else "",
+                        row[comentario_pos] if comentario_pos >= 0 else "",
+                        int(row[nota_pos]) if nota_pos >= 0 else 0,
+                        row[id_estudio_pos] if id_estudio_pos >= 0 else "",
+                        row[id_filme_pos] if id_filme_pos >= 0 else 0
+                    )
+                )
+            
+            return filmes
+        except sql.Error as e:
+            print(f"Erro ao executar a consulta: {e}")
+            return []
+        finally:
+            cursor.close()
 
     @staticmethod
     def print_tabela(connection: sql.Connection):
