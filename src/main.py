@@ -319,8 +319,6 @@ class UserInterface():
             print(f"Erro ao inserir genero: {e}")
             return 0
 
-
-
     def add_movie_menu(self, connection: sql.Connection) -> int:
         estudio_id = 0
 
@@ -630,7 +628,6 @@ class UserInterface():
         resposta = prompt(Question.LIST_SESSIONS_RESULT.value)
 
         return int(resposta['session'])
-
     
     def list_movies(self, connection: sql.Connection):
             filmes = Filme.listar_filmes_completo(connection)
@@ -657,19 +654,7 @@ class UserInterface():
 
         sessoes = Sessao.listar_sessao_completo(connection, id_sessao)
 
-        # sessoes = list(map(lambda x: {
-        #     'ID Sessão': x[0],
-        #     'Data Visto': x[1],
-        #     'Comentario': x[2],
-        #     'Título do Filme': x[3],
-        #     'Comentario Filme': x[4],
-        #     'Nota Filme': x[5],
-        #     'Gêneros': x[6],
-        #     'Local': x[7],
-        #     'Comentario Local': x[8],
-        #     'Pessoas': x[9],
-        # }, rows))
-            
+         
         # Exibindo os resultados formatados
         for sessao in sessoes:
             data = Sessao.str_date_to_struct_time(sessao['Data Visto'], "%Y/%m/%d")
